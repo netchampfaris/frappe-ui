@@ -230,7 +230,7 @@ export function createDocumentResource(options, vm) {
     return doc
   }
 
-  if (options.realtime && vm.$socket) {
+  if (options.realtime && vm?.$socket) {
     onDocUpdate(vm.$socket, out.doctype, (name) => {
       if (name == out.name) {
         out.get.fetch()
