@@ -2,7 +2,7 @@
   <component
     :is="isExternal ? 'a' : 'router-link'"
     v-bind="attributes"
-    class="cursor-pointer text-blue-500 hover:text-blue-600"
+    class="cursor-pointer text-ink-blue-2 hover:text-ink-blue-3"
   >
     <slot></slot>
   </component>

@@ -4,7 +4,7 @@
     :style="setCurrentTime"
     v-if="new Date(date).toDateString() === new Date().toDateString()"
   >
-    <div class="current-time relative h-0.5 bg-red-600" />
+    <div class="current-time relative h-0.5 bg-surface-red-5" />
   </div>
 </template>
 <script setup>

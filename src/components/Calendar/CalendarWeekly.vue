@@ -6,12 +6,12 @@
       <div class="mb-2 grid w-full grid-cols-7">
         <span
           v-for="date in weeklyDates"
-          class="relative p-2 text-center text-sm text-gray-600"
-          :class="isToday(date) ? 'font-bold text-gray-800' : 'font-normal'"
+          class="relative p-2 text-center text-sm text-ink-gray-5"
+          :class="isToday(date) ? 'font-bold text-ink-gray-8' : 'font-normal'"
         >
           <div
             v-if="isToday(date)"
-            class="absolute left-[45%] top-0 h-[2px] w-5 bg-gray-800"
+            class="absolute left-[45%] top-0 h-[2px] w-5 bg-surface-gray-6"
           />
           {{ parseDateWithDay(date) }}
         </span>
@@ -24,7 +24,7 @@
         <div class="grid w-16 grid-cols-1">
           <span
             v-for="time in 24"
-            class="flex items-end justify-center text-center text-sm font-normal text-gray-600"
+            class="flex items-end justify-center text-center text-sm font-normal text-ink-gray-5"
             :style="{ height: `${hourHeight}px` }"
           />
         </div>
@@ -35,7 +35,7 @@
           <div class="grid w-full grid-cols-7">
             <div v-for="(date, idx) in weeklyDates">
               <div
-                class="flex w-full flex-col gap-1 border-b-[1px] border-r-[1px] border-gray-200 transition-all"
+                class="flex w-full flex-col gap-1 border-b-[1px] border-r-[1px] border-outline-gray-modals transition-all"
                 :class="[idx === 0 && 'relative border-l-[1px]']"
                 ref="allDayCells"
                 :data-date-attr="date"

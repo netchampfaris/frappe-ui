@@ -20,9 +20,9 @@
     <template #body="{ togglePopover }">
       <!-- Month Switcher -->
       <div
-        class="mt-2 w-fit select-none divide-y rounded-lg bg-white text-base shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none"
+        class="mt-2 w-fit select-none divide-y rounded-lg bg-surface-modal text-base shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none"
       >
-        <div class="flex items-center p-1 text-gray-500">
+        <div class="flex items-center p-1 text-ink-gray-4">
           <Button variant="ghost" class="h-7 w-7" @click="prevMonth">
             <FeatherIcon
               :stroke-width="2"
@@ -30,7 +30,7 @@
               class="h-4 w-4"
             />
           </Button>
-          <div class="flex-1 text-center text-base font-medium text-gray-700">
+          <div class="flex-1 text-center text-base font-medium text-ink-gray-7">
             {{ formattedMonth }}
           </div>
           <Button variant="ghost" class="h-7 w-7" @click="nextMonth">
@@ -64,7 +64,7 @@
 
         <!-- Calendar -->
         <div
-          class="flex flex-col items-center justify-center p-1 text-gray-800"
+          class="flex flex-col items-center justify-center p-1 text-ink-gray-8"
         >
           <div class="flex items-center text-xs uppercase">
             <div
@@ -83,12 +83,12 @@
             <div
               v-for="date in week"
               :key="getDateValue(date)"
-              class="flex h-8 w-8 cursor-pointer items-center justify-center rounded hover:bg-gray-50"
+              class="flex h-8 w-8 cursor-pointer items-center justify-center rounded hover:bg-surface-menu-bar"
               :class="{
-                'text-gray-400': date.getMonth() !== currentMonth - 1,
-                'font-extrabold text-gray-900':
+                'text-ink-gray-3': date.getMonth() !== currentMonth - 1,
+                'font-extrabold text-ink-gray-9':
                   getDateValue(date) === getDateValue(today),
-                'bg-gray-800 text-white hover:bg-gray-800':
+                'bg-surface-gray-6 text-ink-white hover:bg-surface-gray-6':
                   getDateValue(date) === dateValue,
               }"
               @click="
