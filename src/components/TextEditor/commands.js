@@ -157,7 +157,7 @@ export default {
     label: 'Link',
     icon: Link,
     isActive: (editor) => editor.isActive('link'),
-    component: defineAsyncComponent(() => import('./InsertLink.vue')),
+    component: defineAsyncComponent(() => import('./InsertLinkInline.vue')),
   },
   Image: {
     label: 'Image',

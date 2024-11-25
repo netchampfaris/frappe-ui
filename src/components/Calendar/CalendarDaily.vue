@@ -1,6 +1,6 @@
 <template>
   <div class="h-[90%] min-h-[500px] min-w-[600px]">
-    <p class="pb-2 text-base font-bold text-gray-800">
+    <p class="pb-2 text-base font-bold text-ink-gray-8">
       {{ parseDateWithDay(currentDate, (fullDay = true)) }}
     </p>
     <div class="h-full overflow-hidden">
@@ -12,7 +12,7 @@
         <div class="grid h-full w-16 grid-cols-1">
           <span
             v-for="time in 24"
-            class="flex h-[72px] items-end justify-center text-center text-sm font-normal text-gray-600"
+            class="flex h-[72px] items-end justify-center text-center text-sm font-normal text-ink-gray-5"
             :style="{ height: `${hourHeight}px` }"
           />
         </div>
@@ -22,7 +22,7 @@
           <div class="calendar-column relative border-r-[1px]">
             <!-- Top Redundant Cell before time starts for giving the calendar some space -->
             <div
-              class="flex h-[50px] w-full flex-wrap gap-2 overflow-y-scroll border-b-[1px] border-gray-200 transition-all"
+              class="flex h-[50px] w-full flex-wrap gap-2 overflow-y-scroll border-b-[1px] border-outline-gray-modals transition-all"
               :style="{ height: `${config.redundantCellHeight}px` }"
             >
               <CalendarEvent
@@ -45,7 +45,7 @@
               "
             >
               <div
-                class="w-full border-b-[1px] border-gray-200"
+                class="w-full border-b-[1px] border-outline-gray-modals"
                 :style="{ height: `${hourHeight}px` }"
               />
             </div>

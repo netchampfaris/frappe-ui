@@ -6,7 +6,7 @@
     v-if="activeView !== 'Month'"
     v-bind="$attrs"
     :class="[
-      colorMap[props.event?.color]?.background_color || 'bg-green-100',
+      colorMap[props.event?.color]?.background_color || 'bg-surface-green-2',
       'shadow-lg',
       opened && '!z-20 drop-shadow-xl',
     ]"
@@ -36,11 +36,11 @@
       </div>
 
       <div class="flex w-fit flex-col overflow-hidden whitespace-nowrap">
-        <p class="text-ellipsis text-sm font-medium text-gray-800">
+        <p class="text-ellipsis text-sm font-medium text-ink-gray-8">
           {{ props.event.title || 'New Event' }}
         </p>
         <p
-          class="text-ellipsis text-xs font-normal text-gray-800"
+          class="text-ellipsis text-xs font-normal text-ink-gray-8"
           v-if="!props.event.isFullDay"
         >
           {{ updatedEvent.from_time }} - {{ updatedEvent.to_time }}
@@ -61,7 +61,7 @@
     class="h-min-[18px] rounded-lg p-2 transition-all duration-75"
     ref="eventRef"
     v-bind="$attrs"
-    :class="[colorMap[props.event?.color]?.background_color || 'bg-green-100']"
+    :class="[colorMap[props.event?.color]?.background_color || 'bg-surface-green-2']"
     @dblclick.prevent="handleEventEdit($event)"
     @click="handleEventClick($event)"
   >
@@ -84,11 +84,11 @@
       </div>
 
       <div class="flex w-fit flex-col overflow-hidden whitespace-nowrap">
-        <p class="text-ellipsis text-sm font-medium text-gray-800">
+        <p class="text-ellipsis text-sm font-medium text-ink-gray-8">
           {{ props.event.title || 'New Event' }}
         </p>
         <p
-          class="text-ellipsis text-xs font-normal text-gray-800"
+          class="text-ellipsis text-xs font-normal text-ink-gray-8"
           v-if="props.event.from_time"
         >
           {{ updatedEvent.from_time }} - {{ updatedEvent.to_time }}

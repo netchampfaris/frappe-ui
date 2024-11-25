@@ -231,19 +231,19 @@ export const twentyFourHoursFormat = [
 
 export const colorMap = {
   blue: {
-    background_color: 'bg-blue-100',
+    background_color: 'bg-surface-blue-2',
     border_color: 'border-blue-600',
   },
   green: {
-    background_color: 'bg-green-100',
+    background_color: 'bg-surface-green-2',
     border_color: 'border-green-600',
   },
   red: {
-    background_color: 'bg-red-200',
+    background_color: 'bg-surface-red-3',
     border_color: 'border-red-600',
   },
   orange: {
-    background_color: 'bg-orange-100',
+    background_color: 'bg-surface-orange-1',
     border_color: 'border-orange-600',
   },
   yellow: {
@@ -255,11 +255,11 @@ export const colorMap = {
     border_color: 'border-teal-600',
   },
   violet: {
-    background_color: 'bg-violet-100',
+    background_color: 'bg-surface-violet-1',
     border_color: 'border-violet-600',
   },
   cyan: {
-    background_color: 'bg-cyan-100',
+    background_color: 'bg-surface-cyan-1',
     border_color: 'border-cyan-600',
   },
   purple: {
@@ -267,11 +267,11 @@ export const colorMap = {
     border_color: 'border-purple-600',
   },
   pink: {
-    background_color: 'bg-pink-100',
+    background_color: 'bg-surface-pink-1',
     border_color: 'border-pink-600',
   },
   amber: {
-    background_color: 'bg-amber-100',
+    background_color: 'bg-surface-amber-2',
     border_color: 'border-amber-600',
   },
 }
