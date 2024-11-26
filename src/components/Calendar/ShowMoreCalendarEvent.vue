@@ -8,7 +8,7 @@
   />
   <span
     v-if="totalEventsCount > 1"
-    class="w-fit self-center rounded-sm p-[1px] text-sm font-bold text-gray-600 hover:cursor-pointer hover:bg-gray-200"
+    class="w-fit self-center rounded-sm p-[1px] text-sm font-bold text-ink-gray-5 hover:cursor-pointer hover:bg-surface-gray-3"
     @click="emit('showMoreEvents')"
   >
     +{{ totalEventsCount - 1 }} more

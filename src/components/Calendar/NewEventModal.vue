@@ -69,7 +69,7 @@
               <div
                 class="h-5 w-5 rounded-full shadow-md"
                 :class="[
-                  colorMap[newEvent?.color]?.background_color || 'bg-green-100',
+                  colorMap[newEvent?.color]?.background_color || 'bg-surface-green-2',
                 ]"
               />
             </template>

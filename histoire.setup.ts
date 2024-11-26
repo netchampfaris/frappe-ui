@@ -5,6 +5,7 @@ import './src/style.css'
 if (document.readyState == 'complete') {
   updateThemeAttrOnThemeChange()
 }
+updateThemeAttrOnThemeChange()
 
 // production
 window.addEventListener('DOMContentLoaded', () => {

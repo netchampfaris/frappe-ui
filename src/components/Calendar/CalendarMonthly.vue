@@ -4,7 +4,7 @@
     <div class="grid w-full grid-cols-7 pb-2">
       <span
         v-for="day in daysList"
-        class="text-center text-sm font-normal text-gray-600"
+        class="text-center text-sm font-normal text-ink-gray-5"
         >{{ day }}</span
       >
     </div>
@@ -16,7 +16,7 @@
     >
       <div
         v-for="date in currentMonthDates"
-        class="overflow-y-auto border-b-[1px] border-r-[1px] border-gray-200"
+        class="overflow-y-auto border-b-[1px] border-r-[1px] border-outline-gray-modals"
         @dragover.prevent
         @drageneter.prevent
         @drop="onDrop($event, date)"
@@ -24,19 +24,19 @@
       >
         <div
           class="mx-2 flex justify-center font-normal"
-          :class="currentMonthDate(date) ? 'text-gray-700' : 'text-gray-200'"
+          :class="currentMonthDate(date) ? 'text-ink-gray-7' : 'text-ink-gray-1'"
         >
           <div class="flex w-full flex-col items-center">
             <span
               v-if="currentMonthDate(date)"
-              class="z-10 w-full bg-white py-1 text-center"
+              class="z-10 w-full bg-surface-white py-1 text-center"
               :class="
                 date.toDateString() === new Date().toDateString() && 'font-bold'
               "
             >
               {{ date.getDate() }}
             </span>
-            <span v-else class="z-10 w-full bg-white py-1 text-center">
+            <span v-else class="z-10 w-full bg-surface-white py-1 text-center">
               {{ parseDateEventPopupFormat(date, (showDay = false)) }}
             </span>
 
