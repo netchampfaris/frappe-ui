@@ -88,19 +88,29 @@ export function useCall<TResponse, TParams extends BasicParams = undefined>(
     canAbort,
     aborted,
     abort,
-    execute: _execute,
+    execute,
+    // execute: _execute,
     onFetchResponse,
     onFetchError,
   } = result
 
-  async function execute(): Promise<TResponse | null> {
-    try {
-      await _execute(true)
-      return data.value
-    } catch (e) {
-      throw error.value || e
-    }
-  }
+  //   async function execute(): Promise<TResponse | null> {
+  //     // try {
+  //     //   await _execute(true)
+  //     //   return data.value
+  //     // } catch (e) {
+  //     //   throw error.value || e
+  //     // }
+  //     return new Promise((resolve, reject) => {
+  //       _execute(true)
+  //         .then(() => {
+  //           resolve(data.value)
+  //         })
+  //         .catch((e) => {
+  //           reject(error.value || e)
+  //         })
+  //     })
+  //   }
 
   onFetchResponse(() => {
     resolve()

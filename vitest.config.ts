@@ -5,5 +5,10 @@ export default defineConfig({
     globals: true,
     root: __dirname,
     setupFiles: ['./vitest.setup.ts'],
+    // browser: {
+    //   provider: 'preview',
+    //   enabled: true,
+    //   name: 'chromium',
+    // },
   },
 })

@@ -91,10 +91,15 @@ export function useList<T extends { name: string }>(
     aborted,
     abort,
     execute,
+    // execute: _execute,
   } = useFrappeFetch<UseListResponse<T>>(_url, fetchOptions).get()
 
   let normalizedCacheKey = normalizeCacheKey(cacheKey, 'useList')
   let cachedResponse = ref<UseListResponse<T> | null>(null)
+
+  //   function execute() {
+  //     return _execute(true)
+  //   }
 
   const result = computed(() => {
     if (normalizedCacheKey && (out.loading || !out.isFinished)) {

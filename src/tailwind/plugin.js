@@ -289,7 +289,7 @@ module.exports = plugin(
               '--tw-prose-counters': 'var(--ink-gray-4)',
               '--tw-prose-bullets': 'var(--ink-gray-2)',
               '--tw-prose-hr': 'var(--ink-gray-1)',
-              '--tw-prose-quotes': 'var(--ink-gray-9)',
+              '--tw-prose-quotes': 'var(--ink-gray-8)',
               '--tw-prose-quote-borders': 'var(--ink-gray-1)',
               '--tw-prose-captions': 'var(--ink-gray-4)',
               '--tw-prose-kbd': 'var(--ink-gray-9)',
@@ -298,6 +298,47 @@ module.exports = plugin(
               '--tw-prose-pre-bg': 'var(--ink-gray-8)',
               '--tw-prose-th-borders': 'var(--ink-gray-2)',
               '--tw-prose-td-borders': 'var(--ink-gray-1)',
+              //   h1: {
+              //     fontSize: '1.25rem',
+              //   },
+              //   h2: {
+              //     fontSize: '1rem',
+              //   },
+              //   h3: {
+              //     fontSize: '.875rem',
+              //   },
+              h1: {
+                fontWeight: 600,
+                // color: 'inherit',
+              },
+              h2: {
+                fontWeight: 600,
+                // color: 'inherit',
+              },
+              h3: {
+                fontWeight: 600,
+                // color: 'inherit',
+              },
+              h4: {
+                fontWeight: 600,
+                // color: 'inherit',
+              },
+              'h1 strong': {
+                fontWeight: 600,
+                // color: 'inherit',
+              },
+              'h2 strong': {
+                fontWeight: 600,
+                // color: 'inherit',
+              },
+              'h3 strong': {
+                fontWeight: 600,
+                // color: 'inherit',
+              },
+              'h4 strong': {
+                fontWeight: 600,
+                // color: 'inherit',
+              },
             },
           },
           sm: {
@@ -306,6 +347,30 @@ module.exports = plugin(
               fontWeight: 420,
               lineHeight: 1.6,
               letterSpacing: '0.02em',
+              h1: {
+                fontSize: em(20, 14),
+                marginTop: '0',
+                marginBottom: em(24, 20),
+                // lineHeight: round(36 / 20),
+              },
+              h2: {
+                fontSize: em(16, 14),
+                marginTop: em(32, 16),
+                marginBottom: em(16, 16),
+                // lineHeight: round(28 / 20),
+              },
+              h3: {
+                fontSize: em(14, 14),
+                marginTop: em(28, 14),
+                marginBottom: em(8, 14),
+                // lineHeight: round(28 / 18),
+              },
+              h4: {
+                fontSize: em(13, 14),
+                marginTop: em(13, 14),
+                marginBottom: em(8, 13),
+                // lineHeight: round(20 / 14),
+              },
               p: {
                 marginTop: '0.5rem',
                 marginBottom: '1rem',
@@ -337,3 +402,7 @@ module.exports = plugin(
     },
   },
 )
+
+function em(pixels, base = 16) {
+  return `${pixels / base}em`
+}
