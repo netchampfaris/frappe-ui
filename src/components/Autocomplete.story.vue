@@ -8,31 +8,37 @@ const options = [
   {
     label: 'John Doe',
     value: 'john-doe',
+    description: 'Engineer',
     image: 'https://randomuser.me/api/portraits/men/59.jpg',
   },
   {
     label: 'Jane Doe',
     value: 'jane-doe',
+    description: 'Designer',
     image: 'https://randomuser.me/api/portraits/women/58.jpg',
   },
   {
     label: 'John Smith',
     value: 'john-smith',
+    description: 'Manager',
     image: 'https://randomuser.me/api/portraits/men/59.jpg',
   },
   {
     label: 'Jane Smith',
     value: 'jane-smith',
+    description: 'Developer',
     image: 'https://randomuser.me/api/portraits/women/59.jpg',
   },
   {
     label: 'John Wayne',
     value: 'john-wayne',
+    description: 'CEO',
     image: 'https://randomuser.me/api/portraits/men/57.jpg',
   },
   {
     label: 'Jane Wayne',
     value: 'jane-wayne',
+    description: '',
     image: 'https://randomuser.me/api/portraits/women/51.jpg',
   },
 ]
