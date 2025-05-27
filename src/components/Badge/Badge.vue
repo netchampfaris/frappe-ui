@@ -21,17 +21,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue'
-
-interface Label {
-  toString(): string
-}
-
-interface BadgeProps {
-  theme?: 'gray' | 'blue' | 'green' | 'orange' | 'red'
-  size?: 'sm' | 'md' | 'lg'
-  variant?: 'solid' | 'subtle' | 'outline' | 'ghost'
-  label?: Label | string | number
-}
+import type { BadgeProps } from './types'
 
 const props = withDefaults(defineProps<BadgeProps>(), {
   theme: 'gray',

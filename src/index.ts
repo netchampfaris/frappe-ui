@@ -2,7 +2,7 @@
 export * from './components/Alert'
 export { default as Autocomplete } from './components/Autocomplete.vue'
 export * from './components/Avatar'
-export { default as Badge } from './components/Badge.vue'
+export * from './components/Badge'
 export { default as Breadcrumbs } from './components/Breadcrumbs.vue'
 export * from './components/Button'
 export { default as Card } from './components/Card.vue'
