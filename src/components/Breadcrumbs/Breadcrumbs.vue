@@ -78,20 +78,10 @@
 <script setup lang="ts">
 import { useWindowSize } from '@vueuse/core'
 import { computed } from 'vue'
-import { RouterLinkProps, useRouter } from 'vue-router'
-import Dropdown from '../components/Dropdown.vue'
-import { Button } from './Button'
-
-interface BreadcrumbItem {
-  label: string
-  route?: RouterLinkProps['to']
-  onClick?: () => void
-  [key: string]: any
-}
-
-interface BreadcrumbsProps {
-  items: BreadcrumbItem[]
-}
+import { useRouter } from 'vue-router'
+import Dropdown from '../Dropdown.vue'
+import { Button } from '../Button'
+import type { BreadcrumbsProps } from './types'
 
 const props = defineProps<BreadcrumbsProps>()
 
