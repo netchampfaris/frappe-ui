@@ -16,7 +16,7 @@
       :id="htmlId"
       :checked="Boolean(modelValue)"
       @change="
-        (e) =>
+        (e: Event) =>
           $emit('update:modelValue', (e.target as HTMLInputElement).checked)
       "
       v-bind="attrs"
@@ -28,17 +28,8 @@
 </template>
 <script lang="ts" setup>
 import { computed, useAttrs } from 'vue'
-import { useId } from '../utils/useId'
-
-interface CheckboxProps {
-  size?: 'sm' | 'md'
-  label?: string
-  checked?: boolean
-  disabled?: boolean
-  padding?: boolean
-  modelValue?: boolean | 1 | 0
-  id?: string
-}
+import { useId } from '../../utils/useId'
+import type { CheckboxProps } from './types'
 const props = withDefaults(defineProps<CheckboxProps>(), {
   size: 'sm',
   padding: false,

@@ -1,5 +1,9 @@
 <template>
-  <div v-if="type != 'checkbox'" :class="['space-y-1.5', attrs.class]" :style="attrs.style">
+  <div
+    v-if="type != 'checkbox'"
+    :class="['space-y-1.5', attrs.class]"
+    :style="attrs.style"
+  >
     <FormLabel
       v-if="label"
       :label="label"
@@ -66,7 +70,7 @@ import TextInput from './TextInput.vue'
 import type { TextInputTypes } from './types/TextInput'
 import Select from './Select.vue'
 import Textarea from './Textarea.vue'
-import Checkbox from './Checkbox.vue'
+import Checkbox from './Checkbox/Checkbox.vue'
 import Autocomplete from './Autocomplete.vue'
 import FormLabel from './FormLabel.vue'
 
