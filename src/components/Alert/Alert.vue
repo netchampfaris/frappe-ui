@@ -38,11 +38,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-
-interface AlertProps {
-  title?: string
-  type?: 'warning'
-}
+import type { AlertProps } from './types'
 
 const props = withDefaults(defineProps<AlertProps>(), {
   type: 'warning',

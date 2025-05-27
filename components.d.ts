@@ -8,7 +8,8 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    Alert: typeof import('./src/components/Alert.vue')['default']
+    Alert: typeof import('./src/components/Alert/Alert.vue')['default']
+    'Alert.story': typeof import('./src/components/Alert/Alert.story.vue')['default']
     AlignCenter: typeof import('./src/components/TextEditor/icons/align-center.vue')['default']
     AlignJustify: typeof import('./src/components/TextEditor/icons/align-justify.vue')['default']
     AlignLeft: typeof import('./src/components/TextEditor/icons/align-left.vue')['default']
