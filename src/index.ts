@@ -1,7 +1,7 @@
 // components
 export * from './components/Alert'
 export { default as Autocomplete } from './components/Autocomplete.vue'
-export { default as Avatar } from './components/Avatar.vue'
+export * from './components/Avatar'
 export { default as Badge } from './components/Badge.vue'
 export { default as Breadcrumbs } from './components/Breadcrumbs.vue'
 export * from './components/Button'

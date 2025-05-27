@@ -38,15 +38,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import type { AvatarProps } from './types'
 
 const imgFetchError = ref(false)
-
-interface AvatarProps {
-  image?: string
-  label?: string
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl'
-  shape?: 'circle' | 'square'
-}
 
 const props = withDefaults(defineProps<AvatarProps>(), {
   size: 'md',
@@ -129,7 +123,7 @@ const iconClasses = computed(() => {
   }[props.size]
 })
 
-function handleImageError(err) {
+function handleImageError(err: Event) {
   if (err.type) {
     imgFetchError.value = true
   }

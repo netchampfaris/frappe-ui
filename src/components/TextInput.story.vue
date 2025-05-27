@@ -2,7 +2,7 @@
 import { reactive } from 'vue'
 import TextInput from './TextInput.vue'
 import FeatherIcon from './FeatherIcon.vue'
-import Avatar from './Avatar.vue'
+import Avatar from './Avatar/Avatar.vue'
 
 const state = reactive({
   size: 'sm',
