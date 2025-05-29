@@ -152,48 +152,14 @@ import {
   TransitionRoot,
 } from '@headlessui/vue'
 import { computed, reactive } from 'vue'
-import { Button, ButtonProps } from './Button'
-import FeatherIcon from './FeatherIcon.vue'
-
-type DialogIcon = {
-  name: string
-  appearance?: 'warning' | 'info' | 'danger' | 'success'
-}
-
-type DialogOptions = {
-  title?: string
-  message?: string
-  // default size = 'lg'
-  size?:
-    | 'xs'
-    | 'sm'
-    | 'md'
-    | 'lg'
-    | 'xl'
-    | '2xl'
-    | '3xl'
-    | '4xl'
-    | '5xl'
-    | '6xl'
-    | '7xl'
-  icon?: DialogIcon | string
-  actions?: Array<DialogAction>
-  // default position = 'center'
-  position?: 'top' | 'center'
-}
-
-type DialogActionContext = {
-  close: () => void
-}
-type DialogAction = ButtonProps & {
-  onClick?: (context: DialogActionContext) => void | Promise<void>
-}
-
-interface DialogProps {
-  modelValue: boolean
-  options?: DialogOptions
-  disableOutsideClickToClose?: boolean
-}
+import { Button } from '../Button'
+import FeatherIcon from '../FeatherIcon.vue'
+import type {
+  DialogProps,
+  DialogIcon,
+  DialogAction,
+  DialogActionContext,
+} from './types'
 
 const props = withDefaults(defineProps<DialogProps>(), {
   options: () => ({}),
@@ -210,7 +176,7 @@ const actions = computed(() => {
   let actions = props.options.actions
   if (!actions?.length) return []
 
-  return actions.map((action) => {
+  return actions.map((action: DialogAction) => {
     let _action = reactive({
       ...action,
       loading: false,
@@ -224,10 +190,10 @@ const actions = computed(() => {
                 // let context: DialogActionContext = { close }
                 let backwardsCompatibleContext = function () {
                   console.warn(
-                    'Value passed to onClick is a context object. Please use context.close() instead of context() to close the dialog.'
+                    'Value passed to onClick is a context object. Please use context.close() instead of context() to close the dialog.',
                   )
                   close()
-                }
+                } as DialogActionContext & (() => void)
                 backwardsCompatibleContext.close = close
                 await action.onClick(backwardsCompatibleContext)
               }
@@ -244,7 +210,7 @@ const isOpen = computed({
   get() {
     return props.modelValue
   },
-  set(val) {
+  set(val: boolean) {
     emit('update:modelValue', val)
     if (!val) {
       emit('close')
@@ -268,31 +234,34 @@ const icon = computed(() => {
 
 const dialogPositionClasses = computed(() => {
   const position = props.options?.position || 'center'
-  return {
+  const positionMap: Record<string, string> = {
     center: 'justify-center',
     top: 'pt-[20vh]',
-  }[position]
+  }
+  return positionMap[position]
 })
 
 const dialogIconBgClasses = computed(() => {
   const appearance = icon.value?.appearance
   if (!appearance) return 'bg-surface-gray-2'
-  return {
+  const bgMap: Record<string, string> = {
     warning: 'bg-surface-amber-2',
     info: 'bg-surface-blue-2',
     danger: 'bg-surface-red-2',
     success: 'bg-surface-green-2',
-  }[appearance]
+  }
+  return bgMap[appearance]
 })
 
 const dialogIconClasses = computed(() => {
   const appearance = icon.value?.appearance
   if (!appearance) return 'text-ink-gray-5'
-  return {
+  const iconMap: Record<string, string> = {
     warning: 'text-ink-amber-3',
     info: 'text-ink-blue-3',
     danger: 'text-ink-red-4',
     success: 'text-ink-green-3',
-  }[appearance]
+  }
+  return iconMap[appearance]
 })
 </script>

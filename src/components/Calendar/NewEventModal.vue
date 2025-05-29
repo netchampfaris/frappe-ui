@@ -97,7 +97,7 @@
 </template>
 <script setup>
 import { computed, inject, reactive, ref } from 'vue'
-import Dialog from '../Dialog.vue'
+import Dialog from '../Dialog/Dialog.vue'
 import FormControl from '../FormControl.vue'
 import ErrorMessage from '../ErrorMessage.vue'
 import { Button } from '../Button'
