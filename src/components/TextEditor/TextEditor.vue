@@ -38,10 +38,7 @@ import { Editor, EditorContent, VueNodeViewRenderer } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
-import Table from '@tiptap/extension-table'
-import TableCell from '@tiptap/extension-table-cell'
-import TableHeader from '@tiptap/extension-table-header'
-import TableRow from '@tiptap/extension-table-row'
+import { TableKit } from './extensions/tablekit'
 import { ImageExtension } from './extensions/image'
 import ImageViewerExtension from './image-viewer-extension'
 import VideoExtension from './video-extension'
@@ -133,9 +130,7 @@ watch(
   editorProps,
   (value) => {
     if (editor.value) {
-      editor.value.setOptions({
-        editorProps: value,
-      })
+      editor.value.setOptions({ editorProps: value })
     }
   },
   { deep: true },
@@ -158,16 +153,30 @@ onMounted(() => {
           ? props.starterkitOptions.heading
           : {}),
       }),
-      Table.configure({
-        resizable: true,
+      TableKit.configure({
+        table: {
+          resizable: true,
+          cellMinWidth: 50,
+          handleWidth: 4,
+          allowTableNodeSelection: true,
+          HTMLAttributes: { class: 'custom-table' },
+        },
+        tableCell: {
+          HTMLAttributes: {
+            class:
+              'prose-td:p-2 prose-td:border prose-td:border-outline-gray-2 prose-td:relative',
+          },
+        },
+        tableHeader: {
+          HTMLAttributes: {
+            class:
+              'prose-th:p-2 prose-th:border prose-th:border-outline-gray-2 prose-th:relative prose-th:bg-surface-gray-2',
+          },
+        },
+        tableRow: { HTMLAttributes: {} },
       }),
-      TableRow,
-      TableHeader,
-      TableCell,
       Typography,
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
       TextStyle,
       NamedColorExtension,
       NamedHighlightExtension,
@@ -186,9 +195,7 @@ onMounted(() => {
       VideoExtension.configure({
         uploadFunction: props.uploadFunction || defaultUploadFunction,
       }),
-      LinkExtension.configure({
-        openOnClick: false,
-      }),
+      LinkExtension.configure({ openOnClick: false }),
       Placeholder.configure({
         placeholder:
           typeof props.placeholder === 'function'
@@ -233,9 +240,7 @@ provide(
   computed(() => editor.value),
 )
 
-defineExpose({
-  editor,
-})
+defineExpose({ editor })
 </script>
 
 <style>
@@ -294,12 +299,19 @@ img.ProseMirror-selectednode {
 
 .ProseMirror table .column-resize-handle {
   position: absolute;
-  right: -1px;
+  right: -2px;
   top: 0;
   bottom: -2px;
   width: 4px;
-  background-color: theme('colors.blue.200');
-  pointer-events: none;
+  background-color: transparent;
+  cursor: col-resize;
+  z-index: 10;
+  transition: background-color 0.2s ease;
+}
+
+.ProseMirror table .column-resize-handle:hover {
+  background-color: theme('colors.blue.400');
+  opacity: 0.8;
 }
 
 .resize-cursor {
