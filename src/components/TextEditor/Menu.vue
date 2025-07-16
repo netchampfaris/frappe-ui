@@ -7,14 +7,14 @@
           v-if="button.type === 'separator'"
         ></div>
         <div class="shrink-0" v-else-if="button.map">
-          <Popover popoverClass="z-[10000]">
+          <Popover popoverClass="">
             <template #target="{ togglePopover }">
               <button
                 class="rounded px-2 py-1 text-base font-medium text-ink-gray-8 transition-colors hover:bg-surface-gray-2"
                 @click="togglePopover"
                 :set="
-                  (activeBtn =
-                    button.find((b) => b.isActive(editor)) || button[0])
+                  activeBtn =
+                    button.find((b) => b.isActive(editor)) || button[0]
                 "
               >
                 <component

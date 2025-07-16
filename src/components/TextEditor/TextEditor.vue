@@ -262,7 +262,7 @@ export default {
           if (!detectMarkdown(text)) return
           if (
             !confirm(
-              'Do you want to convert markdown content to HTML before pasting?'
+              'Do you want to convert markdown content to HTML before pasting?',
             )
           )
             return
@@ -359,7 +359,7 @@ img.ProseMirror-selectednode {
     > label {
       flex: 0 0 auto;
       margin-right: 0.5rem;
-      margin-top: 0.5rem;
+      margin-top: 0.25rem;
       height: 1.5em;
       display: flex;
       align-items: center;
@@ -368,7 +368,10 @@ img.ProseMirror-selectednode {
 
     > div {
       flex: 1 1 auto;
-      margin-bottom: 0;
+
+      > p {
+        margin: 0.25rem 0;
+      }
     }
   }
 
