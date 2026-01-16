@@ -67,6 +67,7 @@ import SlashCommands from './extensions/slash-commands/slash-commands-extension'
 import { ContentPasteExtension } from './extensions/content-paste-extension'
 import { TagNode, TagExtension } from './extensions/tag/tag-extension'
 import { Heading } from './extensions/heading/heading'
+import { DocumentMetadata } from './extensions/document-metadata'
 import { ImageGroup } from './extensions/image-group/image-group-extension'
 import { ExtendedCode, ExtendedCodeBlock } from './extensions/code-block'
 import { useFileUpload } from '../../utils/useFileUpload'
@@ -176,6 +177,7 @@ onMounted(() => {
           ? props.starterkitOptions.heading
           : {}),
       }),
+      DocumentMetadata,
       Table.configure({
         resizable: true,
       }),
@@ -297,6 +299,10 @@ defineExpose({
 .ProseMirror-selectednode video,
 img.ProseMirror-selectednode {
   outline: 2px solid var(--outline-gray-2);
+}
+
+div[schema-version] {
+  display: none;
 }
 
 /* Table styles */

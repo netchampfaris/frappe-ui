@@ -393,7 +393,7 @@ export default plugin(
         }),
       },
     },
-  }
+  },
 )
 
 function em(pixels, base = 16) {
