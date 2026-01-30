@@ -95,13 +95,12 @@ defineSlots<{
   /** Custom content at the bottom of the dropdown */
   footer?: () => any
 }>()
-
 </script>
 
 <template>
   <SelectRoot v-model="model">
     <SelectTrigger
-      class="inline-flex items-center gap-2 outline-none text-base text-ink-gray-7 data-[placeholder]:text-ink-gray-4 data-[disabled]:text-ink-gray-4"
+      class="inline-flex items-center gap-2 outline-hidden text-base text-ink-gray-7 data-[placeholder]:text-ink-gray-4 data-[disabled]:text-ink-gray-4"
       aria-label="Customise options"
       :class="[selectClasses, $attrs.class]"
       :disabled="disabled"
@@ -115,7 +114,7 @@ defineSlots<{
 
     <SelectPortal>
       <SelectContent
-        class="bg-surface-modal ring-1 ring-black ring-opacity-5 rounded-lg shadow-2xl will-change-[opacity,transform] z-[100] overflow-hidden origin-center data-[state=open]:animate-[fadeInScale_100ms] data-[state=closed]:animate-[fadeOutScale_100ms]"
+        class="bg-surface-modal ring-1 ring-black/5 rounded-lg shadow-2xl will-change-[opacity,transform] z-[100] overflow-hidden origin-center data-[state=open]:animate-[fadeInScale_100ms] data-[state=closed]:animate-[fadeOutScale_100ms]"
       >
         <SelectViewport class="p-1 flex flex-col">
           <SelectItem

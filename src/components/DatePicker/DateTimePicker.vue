@@ -50,7 +50,7 @@
     <template #body="{ togglePopover }">
       <div
         ref="popoverContentRef"
-        class="w-fit min-w-60 select-none text-base text-ink-gray-9 rounded-lg bg-surface-modal shadow-2xl ring-1 ring-black ring-opacity-5 mt-2"
+        class="w-fit min-w-60 select-none text-base text-ink-gray-9 rounded-lg bg-surface-modal shadow-2xl ring-1 ring-black/5 mt-2"
       >
         <!-- Header (Month/Year navigation) -->
         <div class="flex items-center justify-between p-2 pb-0 gap-1">
@@ -108,7 +108,7 @@
                 v-for="dateObj in week"
                 type="button"
                 :key="dateObj.key"
-                class="flex h-8 w-8 items-center justify-center rounded cursor-pointer text-sm focus:outline-none focus:ring-2 focus:ring-outline-gray-2"
+                class="flex h-8 w-8 items-center justify-center rounded cursor-pointer text-sm focus:outline-hidden focus:ring-2 focus:ring-outline-gray-2"
                 :class="[
                   dateObj.inMonth ? 'text-ink-gray-8' : 'text-ink-gray-3',
                   dateObj.isToday ? 'font-extrabold text-ink-gray-9' : '',
@@ -127,7 +127,7 @@
                 :disabled="dateObj.disabled"
                 @click="
                   !dateObj.disabled &&
-                  handleDateCellClick(dateObj.date, togglePopover)
+                    handleDateCellClick(dateObj.date, togglePopover)
                 "
               >
                 {{ dateObj.date.date() }}
@@ -144,7 +144,7 @@
               v-for="(m, i) in months"
               type="button"
               :key="m"
-              class="py-2 text-sm rounded cursor-pointer text-center hover:bg-surface-gray-2 focus:outline-none focus:ring-2 focus:ring-brand-6"
+              class="py-2 text-sm rounded cursor-pointer text-center hover:bg-surface-gray-2 focus:outline-hidden focus:ring-2 focus:ring-brand-6"
               :class="{
                 'bg-surface-gray-6 text-ink-white hover:bg-surface-gray-6':
                   i === currentMonth,
@@ -165,7 +165,7 @@
               v-for="y in yearRange"
               type="button"
               :key="y"
-              class="py-2 text-sm rounded cursor-pointer text-center hover:bg-surface-gray-2 focus:outline-none focus:ring-2 focus:ring-brand-6"
+              class="py-2 text-sm rounded cursor-pointer text-center hover:bg-surface-gray-2 focus:outline-hidden focus:ring-2 focus:ring-brand-6"
               :class="{
                 'bg-surface-gray-6 text-ink-white hover:bg-surface-gray-6':
                   y === currentYear,

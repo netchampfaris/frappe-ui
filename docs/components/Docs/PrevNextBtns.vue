@@ -43,7 +43,7 @@ const subtleMdLink =
   'text-ink-gray-8 bg-surface-gray-2 ' +
   'hover:bg-surface-gray-3 active:bg-surface-gray-4 ' +
   'transition-colors ' +
-  'focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-3'
+  'focus:outline-hidden focus-visible:ring focus-visible:ring-outline-gray-3'
 </script>
 
 <template>

@@ -111,7 +111,7 @@ const labelFunction = (val: SelectValue_, selected = false) => {
                   :key="idx"
                   :value="getValue(option)"
                   :disabled="isDisabled(option)"
-                  class="text-base leading-none text-ink-gray-7 rounded flex items-center h-7 px-2.5 py-1.5 relative select-none data-[disabled]:opacity-50 data-[disabled]:pointer-events-none data-[highlighted]:outline-none data-[highlighted]:bg-surface-gray-3"
+                  class="text-base leading-none text-ink-gray-7 rounded flex items-center h-7 px-2.5 py-1.5 relative select-none data-[disabled]:opacity-50 data-[disabled]:pointer-events-none data-[highlighted]:outline-hidden data-[highlighted]:bg-surface-gray-3"
                 >
                   <SelectItemText>
                     <span class="flex items-center gap-2 pr-6 flex-1">

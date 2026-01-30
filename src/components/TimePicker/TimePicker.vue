@@ -40,7 +40,7 @@
       <div
         v-show="isOpen"
         ref="panelRef"
-        class="mt-2 max-h-48 w-44 overflow-y-auto rounded-lg bg-surface-modal p-1 text-base shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none"
+        class="mt-2 max-h-48 w-44 overflow-y-auto rounded-lg bg-surface-modal p-1 text-base shadow-2xl ring-1 ring-black/5 focus:outline-hidden"
         role="listbox"
         :aria-activedescendant="activeDescendantId"
       >
@@ -560,10 +560,6 @@ defineSlots<{
    * Slot rendered after the input value.
    * Exposes popover controls.
    */
-  suffix?: (props: {
-    togglePopover: () => void
-    isOpen: boolean
-  }) => any
+  suffix?: (props: { togglePopover: () => void; isOpen: boolean }) => any
 }>()
-
 </script>

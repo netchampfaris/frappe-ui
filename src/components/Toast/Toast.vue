@@ -9,18 +9,18 @@
   >
     <div class="flex items-center gap-2 flex-grow overflow-hidden">
       <div>
-        <component v-if="icon" :is="icon" class="flex-shrink-0 size-4" />
+        <component v-if="icon" :is="icon" class="shrink-0 size-4" />
         <CircleCheck
           v-else-if="type == 'success'"
-          class="flex-shrink-0 size-4 text-ink-green-2"
+          class="shrink-0 size-4 text-ink-green-2"
         />
         <LucideAlertTriangle
           v-else-if="type == 'warning'"
-          class="flex-shrink-0 size-4 text-ink-amber-2"
+          class="shrink-0 size-4 text-ink-amber-2"
         />
         <LucideInfo
           v-else-if="type == 'error'"
-          class="flex-shrink-0 size-4 text-ink-red-2"
+          class="shrink-0 size-4 text-ink-red-2"
         />
       </div>
       <div class="flex flex-col flex-grow overflow-hidden">
@@ -34,7 +34,7 @@
     <div class="flex items-center gap-2 h-7">
       <ToastAction
         v-if="action"
-        class="flex-shrink-0 rounded px-2 py-1 text-sm text-ink-blue-link hover:text-ink-gray-3 focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-4"
+        class="shrink-0 rounded px-2 py-1 text-sm text-ink-blue-link hover:text-ink-gray-3 focus:outline-hidden focus-visible:ring focus-visible:ring-outline-gray-4"
         :alt-text="action.altText || action.label"
         @click="handleAction"
       >
@@ -42,7 +42,7 @@
       </ToastAction>
       <ToastClose
         v-if="closable"
-        class="flex-shrink-0 rounded p-1 text-ink-white hover:text-ink-gray-3 focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-4"
+        class="shrink-0 rounded p-1 text-ink-white hover:text-ink-gray-3 focus:outline-hidden focus-visible:ring focus-visible:ring-outline-gray-4"
       >
         <LucideX class="size-4" />
       </ToastClose>

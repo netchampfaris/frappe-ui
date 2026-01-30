@@ -70,7 +70,7 @@
           <div class="bg-black/65 rounded flex items-center">
             <Tooltip text="Previous image">
               <button
-                class="p-2 hover:bg-gray-900 rounded-l focus:outline-none"
+                class="p-2 hover:bg-gray-900 rounded-l focus:outline-hidden"
                 @click.stop="previousImage"
               >
                 <LucideChevronLeft class="size-4" />
@@ -83,7 +83,7 @@
 
             <Tooltip text="Next image">
               <button
-                class="p-2 hover:bg-gray-900 rounded-r focus:outline-none"
+                class="p-2 hover:bg-gray-900 rounded-r focus:outline-hidden"
                 @click.stop="nextImage"
               >
                 <LucideChevronRight class="size-4" />
@@ -95,7 +95,7 @@
           <div class="bg-black/65 rounded flex items-center">
             <Tooltip text="Zoom out">
               <button
-                class="p-2 hover:bg-gray-900 rounded-l focus:outline-none"
+                class="p-2 hover:bg-gray-900 rounded-l focus:outline-hidden"
                 @click.stop="zoomOut"
               >
                 <LucideMinus class="size-4" />
@@ -104,7 +104,7 @@
 
             <Tooltip text="Reset zoom">
               <button
-                class="p-2 hover:bg-gray-900 text-sm text-gray-400 focus:outline-none"
+                class="p-2 hover:bg-gray-900 text-sm text-gray-400 focus:outline-hidden"
                 @click.stop="resetZoom"
               >
                 {{ zoomLevel }}%
@@ -113,7 +113,7 @@
 
             <Tooltip text="Zoom in">
               <button
-                class="p-2 hover:bg-gray-900 rounded-r focus:outline-none"
+                class="p-2 hover:bg-gray-900 rounded-r focus:outline-hidden"
                 @click.stop="zoomIn"
               >
                 <LucidePlus class="size-4" />
@@ -125,7 +125,7 @@
           <div class="bg-black/65 rounded flex items-center">
             <Tooltip text="Download image">
               <button
-                class="p-2 hover:bg-gray-900 rounded-l focus:outline-none"
+                class="p-2 hover:bg-gray-900 rounded-l focus:outline-hidden"
                 @click.stop="downloadImage"
               >
                 <LucideDownload class="size-4" />
@@ -136,7 +136,7 @@
               :text="isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
             >
               <button
-                class="p-2 hover:bg-gray-900 rounded-r focus:outline-none hidden sm:block"
+                class="p-2 hover:bg-gray-900 rounded-r focus:outline-hidden hidden sm:block"
                 @click.stop="toggleFullscreen"
               >
                 <LucideMaximize v-if="!isFullscreen" class="size-4" />
@@ -149,7 +149,7 @@
           <div class="bg-black/65 rounded flex items-center">
             <Tooltip text="Close">
               <button
-                class="p-2 hover:bg-gray-900 rounded focus:outline-none"
+                class="p-2 hover:bg-gray-900 rounded focus:outline-hidden"
                 @click.stop="close"
               >
                 <LucideX class="size-4" />

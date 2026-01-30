@@ -14,7 +14,7 @@ const containerRef = ref<HTMLDivElement | null>(null)
 const isResizing = ref(false)
 const startDragX = ref(0)
 const startWidth = ref(0)
-const originalAspectRatio = ref(9/16) // Default 16:9
+const originalAspectRatio = ref(9 / 16) // Default 16:9
 const isEditable = ref(false)
 
 function selectIframe() {
@@ -28,19 +28,19 @@ const platformInfo = computed(() => {
     const aspectInfo = calculateAspectRatio(props.node.attrs.src)
     return {
       platform: platform?.name || 'Generic',
-      aspectRatio: aspectInfo.ratio
+      aspectRatio: aspectInfo.ratio,
     }
   }
-  return { platform: 'Generic', aspectRatio: 9/16 }
+  return { platform: 'Generic', aspectRatio: 9 / 16 }
 })
 
 const iframeStyles = computed(() => {
   const width = props.node.attrs.width || 640
-  const height = props.node.attrs.height || (width * originalAspectRatio.value)
+  const height = props.node.attrs.height || width * originalAspectRatio.value
 
   return {
     width: `${width}px`,
-    height: `${height}px`
+    height: `${height}px`,
   }
 })
 
@@ -68,14 +68,15 @@ function startResize(event: MouseEvent) {
   selectIframe()
   isResizing.value = true
   startDragX.value = event.clientX
-  startWidth.value = containerRef.value?.offsetWidth || props.node.attrs.width || 640
+  startWidth.value =
+    containerRef.value?.offsetWidth || props.node.attrs.width || 640
 
   // Use stored aspect ratio or calculate from current dimensions
   if (props.node.attrs.aspectRatio) {
     originalAspectRatio.value = props.node.attrs.aspectRatio
   } else {
     const width = props.node.attrs.width || startWidth.value
-    const height = props.node.attrs.height || (width * originalAspectRatio.value)
+    const height = props.node.attrs.height || width * originalAspectRatio.value
     if (width && height) {
       originalAspectRatio.value = height / width
     }
@@ -125,7 +126,7 @@ function stopResize() {
     props.updateAttributes({
       width: finalWidth,
       height: finalHeight,
-      aspectRatio: originalAspectRatio.value
+      aspectRatio: originalAspectRatio.value,
     })
 
     // Clear temporary styles immediately (like image extension)
@@ -185,7 +186,7 @@ function setCursorBeforeIframe() {
   <NodeViewWrapper>
     <div
       ref="containerRef"
-      class="relative overflow-hidden not-prose my-6 rounded-lg block max-w-full focus:outline-none"
+      class="relative overflow-hidden not-prose my-6 rounded-lg block max-w-full focus:outline-hidden"
       :class="[
         { 'ring-2 ring-outline-gray-3 ring-offset-2': selected },
         node.attrs.align === 'center' ? 'mx-auto' : '',
@@ -194,7 +195,7 @@ function setCursorBeforeIframe() {
       ]"
       :style="{
         width: node.attrs.width ? `${node.attrs.width}px` : 'auto',
-        maxWidth: '100%'
+        maxWidth: '100%',
       }"
       @keydown="handleKeydown"
       tabindex="0"
@@ -236,7 +237,7 @@ function setCursorBeforeIframe() {
               @click.stop="setAlignment('left')"
               :class="[
                 'px-1.5 py-1 text-ink-gray-4 hover:text-white transition-colors duration-150',
-                { 'text-white': node.attrs.align === 'left' }
+                { 'text-white': node.attrs.align === 'left' },
               ]"
               title="Align Left"
             >
@@ -246,7 +247,7 @@ function setCursorBeforeIframe() {
               @click.stop="setAlignment('center')"
               :class="[
                 'px-1.5 py-1 text-ink-gray-4 hover:text-white transition-colors duration-150',
-                { 'text-white': node.attrs.align === 'center' }
+                { 'text-white': node.attrs.align === 'center' },
               ]"
               title="Align Center"
             >
@@ -256,7 +257,7 @@ function setCursorBeforeIframe() {
               @click.stop="setAlignment('right')"
               :class="[
                 'px-1.5 py-1 text-ink-gray-4 hover:text-white transition-colors duration-150',
-                { 'text-white': node.attrs.align === 'right' }
+                { 'text-white': node.attrs.align === 'right' },
               ]"
               title="Align Right"
             >
@@ -275,7 +276,6 @@ function setCursorBeforeIframe() {
           </button>
         </div>
 
-
         <!-- Loading state for new embeds -->
         <div
           v-if="!node.attrs.src"
@@ -292,10 +292,15 @@ function setCursorBeforeIframe() {
       <input
         v-if="(isEditable || node.attrs.title) && node.attrs.src"
         :value="node.attrs.title"
-        class="w-full text-center bg-transparent text-sm text-ink-gray-6 h-7 border-0 mt-2 focus:outline-none focus:ring-0 placeholder-ink-gray-4 disabled:opacity-60"
+        class="w-full text-center bg-transparent text-sm text-ink-gray-6 h-7 border-0 mt-2 focus:outline-hidden focus:ring-0 placeholder-ink-gray-4 disabled:opacity-60"
         placeholder="Add caption"
         :disabled="!isEditable"
-        @input="(e) => props.updateAttributes({ title: (e.target as HTMLInputElement).value })"
+        @input="
+          (e) =>
+            props.updateAttributes({
+              title: (e.target as HTMLInputElement).value,
+            })
+        "
         @keydown="handleKeydown"
       />
     </div>

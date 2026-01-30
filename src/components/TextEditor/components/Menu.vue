@@ -33,7 +33,7 @@
             </template>
             <template #body="{ close }">
               <ul
-                class="p-1.5 mt-2 rounded-lg bg-surface-modal shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none"
+                class="p-1.5 mt-2 rounded-lg bg-surface-modal shadow-2xl ring-1 ring-black/5 focus:outline-hidden"
               >
                 <!-- fix: isDisabled hides here, and disables elsewhere -->
                 <li
@@ -87,7 +87,7 @@
                     <component
                       v-if="option.icon"
                       :is="option.icon"
-                      class="size-4 flex-shrink-0 text-ink-gray-6"
+                      class="size-4 shrink-0 text-ink-gray-6"
                     />
                     <span
                       v-if="option.label"

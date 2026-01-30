@@ -6,7 +6,7 @@
       @click="handleClick"
       :disabled="isDisabled"
       :ariaLabel="ariaLabel"
-      :type = "props.type"
+      :type="props.type"
       ref="rootRef"
     >
       <LoadingIndicator
@@ -53,11 +53,7 @@
           :class="slotClasses"
           aria-hidden="true"
         />
-          <component
-            v-else-if="iconRight"
-            :is="iconRight"
-            :class="slotClasses"
-          />
+        <component v-else-if="iconRight" :is="iconRight" :class="slotClasses" />
       </slot>
     </button>
   </Tooltip>
@@ -78,7 +74,7 @@ const props = withDefaults(defineProps<ButtonProps>(), {
   variant: 'subtle',
   loading: false,
   disabled: false,
-  type: "button"
+  type: 'button',
 })
 
 const slots = useSlots()
@@ -179,7 +175,7 @@ const buttonClasses = computed(() => {
   }
 
   return [
-    'inline-flex items-center justify-center gap-2 transition-colors focus:outline-none shrink-0',
+    'inline-flex items-center justify-center gap-2 transition-colors focus:outline-hidden shrink-0',
     isDisabled.value ? disabledClasses : variantClasses,
     focusClasses,
     sizeClasses,

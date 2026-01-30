@@ -95,7 +95,7 @@
                       saveCaption(`${item.type}-${idx}`, idx)
                     "
                     @keydown.escape="cancelEditingCaption"
-                    class="w-full text-xs bg-white/90 text-gray-900 px-1 py-0.5 rounded-sm border-none outline-none"
+                    class="w-full text-xs bg-white/90 text-gray-900 px-1 py-0.5 rounded-sm border-none outline-hidden"
                     placeholder="Add caption..."
                     maxlength="200"
                   />
@@ -155,7 +155,7 @@
                         saveCaption(`${item.type}-${idx}`, idx)
                       "
                       @keydown.escape="cancelEditingCaption"
-                      class="w-full text-xs bg-white/90 text-gray-900 px-1 py-0.5 rounded border-none outline-none"
+                      class="w-full text-xs bg-white/90 text-gray-900 px-1 py-0.5 rounded border-none outline-hidden"
                       placeholder="Add caption..."
                       maxlength="200"
                     />

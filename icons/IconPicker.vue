@@ -163,7 +163,7 @@ defineExpose({
         <div class="flex items-center gap-2 flex-1 overflow-hidden">
           <Icon
             :name="internalModelValue || 'circle-dashed'"
-            class="w-4 h-4 flex-shrink-0"
+            class="w-4 h-4 shrink-0"
           />
           <ComboboxInput
             :value="searchTerm"

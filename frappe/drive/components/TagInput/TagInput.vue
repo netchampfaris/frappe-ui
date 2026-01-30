@@ -99,7 +99,7 @@ function removeTag(tag: string) {
       :options="filteredOptions"
       v-model="search"
       :placeholder
-      class="flex-1 min-w-[100px] text-xs focus:outline-none"
+      class="flex-1 min-w-[100px] text-xs focus:outline-hidden"
       @update:modelValue="addTag"
       :open-on-click="true"
       variant="ghost"

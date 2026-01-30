@@ -404,7 +404,7 @@ const groupHasIcons = (group: DropdownGroupOption) => {
 const cssClasses = {
   // Container classes
   dropdownContent:
-    'min-w-40 divide-y divide-outline-gray-modals rounded-lg bg-surface-modal shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none dropdown-content',
+    'min-w-40 divide-y divide-outline-gray-modals rounded-lg bg-surface-modal shadow-2xl ring-1 ring-black/5 focus:outline-hidden dropdown-content',
   groupContainer: 'p-1.5',
 
   // Label classes
@@ -412,15 +412,15 @@ const cssClasses = {
   itemLabel: 'whitespace-nowrap',
 
   // Icon classes
-  itemIcon: 'mr-2 h-4 w-4 flex-shrink-0',
-  itemIconPlaceholder: 'mr-2 h-4 w-4 flex-shrink-0',
-  chevronIcon: 'ml-auto h-4 w-4 flex-shrink-0',
+  itemIcon: 'mr-2 h-4 w-4 shrink-0',
+  itemIconPlaceholder: 'mr-2 h-4 w-4 shrink-0',
+  chevronIcon: 'ml-auto h-4 w-4 shrink-0',
 
   // Button classes
   itemButton:
-    'group flex h-7 w-full items-center rounded px-2 text-base focus:outline-none',
+    'group flex h-7 w-full items-center rounded px-2 text-base focus:outline-hidden',
   submenuTrigger:
-    'group flex h-7 w-full items-center rounded px-2 text-base text-ink-gray-6 focus:outline-none',
+    'group flex h-7 w-full items-center rounded px-2 text-base text-ink-gray-6 focus:outline-hidden',
 }
 
 const groups = computed(() => {
@@ -436,7 +436,11 @@ const align = computed(() => {
 
 defineSlots<{
   /** Default slot for custom trigger content (receives `open`, `close`, and extra attrs) */
-  default?: (props: { open: boolean; close: () => void; [key: string]: any }) => any
+  default?: (props: {
+    open: boolean
+    close: () => void
+    [key: string]: any
+  }) => any
 
   /** Custom rendering for each dropdown item (receives `item` and `close`) */
   item?: (props: { item: DropdownOption; close: () => void }) => any

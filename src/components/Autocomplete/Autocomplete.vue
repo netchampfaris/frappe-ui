@@ -30,7 +30,7 @@
               {{ props.label }}
             </label>
             <button
-              class="flex h-7 w-full items-center justify-between gap-2 rounded bg-surface-gray-2 px-2 py-1 transition-colors hover:bg-surface-gray-3 border border-transparent focus:border-outline-gray-4 focus:outline-none focus:ring-2 focus:ring-outline-gray-3"
+              class="flex h-7 w-full items-center justify-between gap-2 rounded bg-surface-gray-2 px-2 py-1 transition-colors hover:bg-surface-gray-3 border border-transparent focus:border-outline-gray-4 focus:outline-hidden focus:ring-2 focus:ring-outline-gray-3"
               :class="{ 'bg-surface-gray-3': isComboboxOpen }"
               @click="() => togglePopover()"
             >
@@ -128,7 +128,7 @@
                     <div class="flex flex-1 gap-2 overflow-hidden items-center">
                       <div
                         v-if="$slots['item-prefix'] || props.multiple"
-                        class="flex flex-shrink-0"
+                        class="flex shrink-0"
                       >
                         <slot
                           name="item-prefix"
@@ -149,7 +149,7 @@
 
                     <div
                       v-if="$slots['item-suffix'] || option?.description"
-                      class="ml-2 flex-shrink-0"
+                      class="ml-2 shrink-0"
                     >
                       <slot
                         name="item-suffix"

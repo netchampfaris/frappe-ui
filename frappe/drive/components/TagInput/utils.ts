@@ -56,7 +56,7 @@ export const RenderIcon: FunctionalComponent<{ icon?: string | Component }> = (
   return h(
     'span',
     {
-      class: 'flex-shrink-0 w-4 h-4 inline-flex items-center justify-center',
+      class: 'shrink-0 w-4 h-4 inline-flex items-center justify-center',
     },
     [iconContent],
   )

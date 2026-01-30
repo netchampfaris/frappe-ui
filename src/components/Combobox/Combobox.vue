@@ -54,7 +54,6 @@ const emit = defineEmits<{
   input: (value: string) => void
 }>()
 
-
 const searchTerm = ref(getDisplayValue(props.modelValue))
 const internalModelValue = ref(props.modelValue)
 const isOpen = ref(false)
@@ -190,7 +189,7 @@ const RenderIcon: FunctionalComponent<{ icon?: string | Component }> = (
   return h(
     'span',
     {
-      class: 'flex-shrink-0 w-4 h-4 inline-flex items-center justify-center',
+      class: 'shrink-0 w-4 h-4 inline-flex items-center justify-center',
     },
     [iconContent],
   )
@@ -311,9 +310,11 @@ defineSlots<{
   prefix?: () => any
 
   /** Custom slot for individual options, only used if the option has `slotName` */
-  [slotName: string]: (props: { option: SimpleOption; searchTerm: string }) => any
+  [slotName: string]: (props: {
+    option: SimpleOption
+    searchTerm: string
+  }) => any
 }>()
-
 </script>
 
 <template>
@@ -383,7 +384,7 @@ defineSlots<{
                   :key="`${index}-${idx}`"
                   :value="getKey(option)"
                   :disabled="isDisabled(option)"
-                  class="text-base leading-none text-ink-gray-7 rounded flex items-center h-7 px-2.5 py-1.5 relative select-none data-[disabled]:opacity-50 data-[disabled]:pointer-events-none data-[highlighted]:outline-none data-[highlighted]:bg-surface-gray-3"
+                  class="text-base leading-none text-ink-gray-7 rounded flex items-center h-7 px-2.5 py-1.5 relative select-none data-[disabled]:opacity-50 data-[disabled]:pointer-events-none data-[highlighted]:outline-hidden data-[highlighted]:bg-surface-gray-3"
                 >
                   <slot
                     v-if="getSlotName(option)"
@@ -413,7 +414,7 @@ defineSlots<{
                 :key="index"
                 :value="getKey(optionOrGroup)"
                 :disabled="isDisabled(optionOrGroup)"
-                class="text-base leading-none text-ink-gray-7 rounded flex items-center h-7 px-2.5 py-1.5 relative select-none data-[disabled]:opacity-50 data-[disabled]:pointer-events-none data-[highlighted]:outline-none data-[highlighted]:bg-surface-gray-3"
+                class="text-base leading-none text-ink-gray-7 rounded flex items-center h-7 px-2.5 py-1.5 relative select-none data-[disabled]:opacity-50 data-[disabled]:pointer-events-none data-[highlighted]:outline-hidden data-[highlighted]:bg-surface-gray-3"
               >
                 <slot
                   v-if="getSlotName(optionOrGroup)"

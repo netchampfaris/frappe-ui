@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex h-full flex-col flex-shrink-0 overflow-y-auto overflow-x-hidden border-r border-outline-gray-1 bg-surface-menu-bar transition-all duration-300 ease-in-out p-2"
+    class="flex h-full flex-col shrink-0 overflow-y-auto overflow-x-hidden border-r border-outline-gray-1 bg-surface-menu-bar transition-all duration-300 ease-in-out p-2"
     :class="shouldCollapse ? 'w-12' : 'w-60'"
   >
     <SidebarHeader
@@ -24,7 +24,7 @@
       :collapsible="section.collapsible"
     >
       <template #sidebar-item="{ item, isCollapsed }"
-        ><slot name="sidebar-item" :item :isCollapsed ></slot
+        ><slot name="sidebar-item" :item :isCollapsed></slot
       ></template>
     </SidebarSection>
 
@@ -34,7 +34,7 @@
         v-bind="{ isCollapsed: shouldCollapse, isMobile }"
       />
       <SidebarItem
-	    v-if="!props.disableCollapse"
+        v-if="!props.disableCollapse"
         :label="shouldCollapse ? 'Expand' : 'Collapse'"
         :isCollapsed="shouldCollapse"
         @click="isCollapsed = !isCollapsed"
@@ -67,7 +67,9 @@ const isCollapsed = defineModel('collapsed', {
   default: null,
 })
 provide('isSidebarCollapsed', isCollapsed)
-const shouldCollapse = computed(() => (isCollapsed.value || isMobile.value) && !props.disableCollapse)
+const shouldCollapse = computed(
+  () => (isCollapsed.value || isMobile.value) && !props.disableCollapse,
+)
 
 const breakpoints = useBreakpoints(breakpointsTailwind)
 const isMobile = breakpoints.smaller('sm')

@@ -172,7 +172,7 @@ const vScrollActive = {
 
 <template>
   <div
-    class="fixed inset-0 z-100 flex items-start justify-center bg-black/50 backdrop-blur-sm"
+    class="fixed inset-0 z-100 flex items-start justify-center bg-black/50 backdrop-blur-xs"
     @click.self="emits('close')"
   >
     <div
@@ -187,7 +187,7 @@ const vScrollActive = {
           ref="inputRef"
           v-model="filterText"
           placeholder="Search documentation"
-          class="w-full bg-transparent !outline-none !border-0 text-sm p-0 !ring-0"
+          class="w-full bg-transparent !outline-hidden !border-0 text-sm p-0 !ring-0"
           @keydown.down.prevent="move(1)"
           @keydown.up.prevent="move(-1)"
           @keydown.enter.prevent="selectActive"

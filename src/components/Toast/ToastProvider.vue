@@ -3,7 +3,7 @@
     <slot />
     <Toasts />
     <ToastViewport
-      class="fixed bottom-0 items-end right-0 flex flex-col p-5 gap-[10px] w-auto max-w-full z-[2147483647] outline-none pointer-events-none"
+      class="fixed bottom-0 items-end right-0 flex flex-col p-5 gap-[10px] w-auto max-w-full z-[2147483647] outline-hidden pointer-events-none"
     />
   </ToastProvider>
 </template>

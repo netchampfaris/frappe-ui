@@ -26,7 +26,7 @@
           >
             <div class="flex flex-1 items-center gap-2">
               <div
-                class="w-13 flex-shrink-0 pl-2 text-end text-base text-ink-gray-5"
+                class="w-13 shrink-0 pl-2 text-end text-base text-ink-gray-5"
               >
                 {{ i == 0 ? 'Where' : 'And' }}
               </div>
@@ -38,7 +38,7 @@
                   placeholder="Filter by..."
                 />
               </div>
-              <div id="operator" class="!min-w-[140px] flex-shrink-0">
+              <div id="operator" class="!min-w-[140px] shrink-0">
                 <FormControl
                   type="select"
                   :modelValue="filter.operator"
@@ -71,7 +71,7 @@
                 />
               </div>
             </div>
-            <div class="flex-shrink-0">
+            <div class="shrink-0">
               <Button variant="ghost" icon="x" @click="removeFilter(i)" />
             </div>
           </div>

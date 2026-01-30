@@ -64,8 +64,8 @@ watch(model, (val) => {
 const id = useId()
 const switchClasses = computed(() => {
   return [
-    'relative inline-flex flex-shrink-0 cursor-pointer rounded-full border-transparent transition-colors duration-100 ease-in-out items-center',
-    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-outline-gray-3',
+    'relative inline-flex shrink-0 cursor-pointer rounded-full border-transparent transition-colors duration-100 ease-in-out items-center',
+    'focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-outline-gray-3',
     'disabled:cursor-not-allowed disabled:bg-surface-gray-3',
     model.value
       ? 'bg-surface-gray-7 enabled:hover:bg-surface-gray-6 active:bg-surface-gray-5 group-hover:enabled:bg-surface-gray-6'
@@ -88,7 +88,7 @@ const switchCircleClasses = computed(() => {
   ]
 })
 
-const iconClasses = 'mr-2 h-4 w-4 flex-shrink-0 text-ink-gray-6'
+const iconClasses = 'mr-2 h-4 w-4 shrink-0 text-ink-gray-6'
 const switchLabelClasses = computed(() => {
   return [
     'font-medium leading-normal',
@@ -105,7 +105,7 @@ const switchGroupClasses = computed(() => {
   const classes = ['flex justify-between']
   if (!props.description) {
     classes.push(
-      'group items-center space-x-3 cursor-pointer rounded focus-visible:bg-surface-gray-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-outline-gray-3',
+      'group items-center space-x-3 cursor-pointer rounded focus-visible:bg-surface-gray-2 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-outline-gray-3',
     )
 
     classes.push(
