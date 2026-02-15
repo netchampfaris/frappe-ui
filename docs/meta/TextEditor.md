@@ -24,7 +24,7 @@
     "description": "Custom classes applied to the editor root",
     "required": false,
     "type": "string | object | string[]",
-    "default": "\"\""
+    "default": "\"prose-sm\""
   },
   {
     "name": "editable",

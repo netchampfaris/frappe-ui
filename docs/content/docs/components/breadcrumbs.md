@@ -1,6 +1,7 @@
 # Breadcrumbs
 
-A navigation aid that shows the user’s current location within a hierarchy and allows quick navigation to parent pages.
+A navigation aid that shows the user’s current location within a hierarchy and
+allows quick navigation to parent pages.
 
 ## Example
 
@@ -9,5 +10,9 @@ A navigation aid that shows the user’s current location within a hierarchy and
 ## Prefix slot
 
 <ComponentPreview name="Breadcrumbs-Slots" css='justify-center !py-20'/>
+
+## Dropdown
+
+<ComponentPreview name="Breadcrumbs-Dropdown" css='justify-center py-20'/>
 
 <!-- @include: ../../../meta/Breadcrumbs.md -->
