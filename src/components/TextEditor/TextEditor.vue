@@ -18,6 +18,14 @@
       <EditorContent :editor="editor" />
     </slot>
     <slot name="bottom" :editor />
+    <ImageGroupUploadDialog
+      v-if="showImageGroupDialog"
+      mode="new"
+      v-model="showImageGroupDialog"
+      v-model:files="imageGroupFiles"
+      :editor="editor"
+      @close="showImageGroupDialog = false"
+    />
   </div>
 </template>
 
@@ -71,6 +79,7 @@ import { ExtendedCode, ExtendedCodeBlock } from './extensions/code-block'
 import TextEditorFixedMenu from './components/TextEditorFixedMenu.vue'
 import TextEditorBubbleMenu from './components/TextEditorBubbleMenu.vue'
 import TextEditorFloatingMenu from './components/TextEditorFloatingMenu.vue'
+import ImageGroupUploadDialog from './extensions/image-group/ImageGroupUploadDialog.vue'
 
 import { useFileUpload } from '../../utils/useFileUpload'
 import { TextEditorEmits, TextEditorProps } from './types'
@@ -96,11 +105,14 @@ const props = withDefaults(defineProps<TextEditorProps>(), {
   starterkitOptions: () => ({}),
   mentions: null,
   tags: null,
+  interceptPageDrops: false,
 })
 
 const emit = defineEmits<TextEditorEmits>()
 
 const editor = ref<Editor | null>(null)
+const showImageGroupDialog = ref(false)
+const imageGroupFiles = ref<File[]>([])
 
 const attrs = useAttrs()
 const attrsClass = computed(() => normalizeClass(attrs.class))
@@ -152,12 +164,19 @@ watch(
   { deep: true },
 )
 
+function openImageGroupDialog(files: File[]) {
+  imageGroupFiles.value = files
+  showImageGroupDialog.value = true
+}
+
 onMounted(() => {
   editor.value = new Editor({
     content: props.content || null,
     editorProps: editorProps.value,
     editable: props.editable,
     autofocus: props.autofocus,
+    // injectCSS: false,
+
     extensions: [
       StarterKit.configure({
         ...props.starterkitOptions,
@@ -199,6 +218,8 @@ onMounted(() => {
       }),
       ImageGroup.configure({
         uploadFunction: props.uploadFunction || defaultUploadFunction,
+        interceptPageDrops: props.interceptPageDrops,
+        onUploadImages: openImageGroupDialog,
       }),
       ImageViewerExtension,
       VideoExtension.configure({

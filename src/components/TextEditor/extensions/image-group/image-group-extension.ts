@@ -1,5 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
+import { Plugin } from '@tiptap/pm/state'
 import ImageGroupNodeView from './ImageGroupNodeView.vue'
 import { UploadedFile } from '../../../../utils/useFileUpload'
 
@@ -10,6 +11,17 @@ export interface ImageGroupOptions {
    */
   uploadFunction: ((file: File) => Promise<UploadedFile>) | null
   HTMLAttributes: Record<string, any>
+  /**
+   * When true, listens for drag-and-drop events on the entire page and
+   * inserts dropped images into this editor, even when the drop target is
+   * outside the editor container.
+   */
+  interceptPageDrops: boolean
+  /**
+   * Called when one or more image files need to be uploaded as a group.
+   * The host component (e.g. TextEditor) should open the upload dialog.
+   */
+  onUploadImages?: (files: File[]) => void
 }
 
 export interface ImageGroupAttrs {
@@ -34,6 +46,11 @@ declare module '@tiptap/core' {
        * Group selected images into an image group
        */
       groupSelectedImages: () => ReturnType
+      /**
+       * Upload one or more image files. A single file is inserted as a plain
+       * image; two or more files are inserted as an image group.
+       */
+      uploadImages: (files: File[]) => ReturnType
     }
   }
 }
@@ -41,16 +58,70 @@ declare module '@tiptap/core' {
 export const ImageGroup = Node.create<ImageGroupOptions>({
   name: 'imageGroup',
 
+  // Higher priority than ImageExtension (100) so this plugin's drop handler
+  // runs first and can intercept multi-image drops before ImageExtension does.
+  priority: 110,
+
   group: 'block',
   content: 'image+', // one or more images
   selectable: true,
   draggable: true,
   isolating: true,
 
+  addStorage() {
+    return {
+      _pageDragOverHandler: null as ((e: DragEvent) => void) | null,
+      _pageDropHandler: null as ((e: DragEvent) => void) | null,
+    }
+  },
+
   addOptions() {
     return {
       uploadFunction: null,
       HTMLAttributes: {},
+      interceptPageDrops: false,
+      onUploadImages: undefined,
+    }
+  },
+
+  onCreate() {
+    if (!this.options.interceptPageDrops) return
+
+    this.storage._pageDragOverHandler = (event: DragEvent) => {
+      if (!event.dataTransfer?.types.includes('Files')) return
+      event.preventDefault()
+    }
+
+    this.storage._pageDropHandler = (event: DragEvent) => {
+      const view = this.editor?.view
+      if (!view) return
+
+      const files = Array.from(event.dataTransfer?.files || [])
+      const images = files.filter((f) => f.type.startsWith('image/'))
+      if (images.length === 0) return
+
+      // If dropped inside the editor, let TipTap's own handler deal with it
+      if (view.dom.contains(event.target as HTMLElement)) return
+
+      event.preventDefault()
+      this.editor.commands.uploadImages(images)
+    }
+
+    document.addEventListener('dragover', this.storage._pageDragOverHandler)
+    document.addEventListener('drop', this.storage._pageDropHandler)
+  },
+
+  onDestroy() {
+    if (this.storage._pageDragOverHandler) {
+      document.removeEventListener(
+        'dragover',
+        this.storage._pageDragOverHandler,
+      )
+      this.storage._pageDragOverHandler = null
+    }
+    if (this.storage._pageDropHandler) {
+      document.removeEventListener('drop', this.storage._pageDropHandler)
+      this.storage._pageDropHandler = null
     }
   },
 
@@ -159,8 +230,8 @@ export const ImageGroup = Node.create<ImageGroupOptions>({
             }
           })
 
-          // Insert the image group at the start position
-          cmd = cmd
+          // Insert the image group at the start position and run the chain
+          cmd
             .insertContentAt(insertPos, {
               type: this.name,
               attrs: { columns: images.length },
@@ -173,6 +244,16 @@ export const ImageGroup = Node.create<ImageGroupOptions>({
 
           return true
         },
+
+      uploadImages:
+        (files: File[]) =>
+        ({ editor }) => {
+          if (files.length < 2) {
+            return editor.commands.uploadImage(files[0])
+          }
+          this.options.onUploadImages?.(files)
+          return true
+        },
     }
   },
 
@@ -180,6 +261,32 @@ export const ImageGroup = Node.create<ImageGroupOptions>({
     return {
       'Mod-Shift-g': () => this.editor.commands.groupSelectedImages(),
     }
+  },
+
+  addProseMirrorPlugins() {
+    const extensionThis = this
+    return [
+      new Plugin({
+        props: {
+          handleDOMEvents: {
+            drop: (view, event) => {
+              if (!extensionThis.options.uploadFunction) return false
+
+              const images = Array.from(event.dataTransfer?.files || []).filter(
+                (f) => /image/i.test(f.type),
+              )
+
+              // Single-image drops are handled by ImageExtension
+              if (images.length < 2) return false
+
+              event.preventDefault()
+              extensionThis.options.onUploadImages?.(images)
+              return true
+            },
+          },
+        },
+      }),
+    ]
   },
 })
 

@@ -55,6 +55,13 @@ export interface TextEditorProps {
 
   /** Extra arguments passed to the upload function */
   uploadArgs?: object
+
+  /**
+   * When true, listens for drag-and-drop events on the entire page and
+   * inserts dropped images into this editor, even when the drop target is
+   * outside the editor container. Useful for full-page editor layouts.
+   */
+  interceptPageDrops?: boolean
 }
 
 export interface TextEditorEmits {
