@@ -9,6 +9,8 @@ let colorPalette = generateColorPalette()
 let semanticColors = generateSemanticColors()
 let cssVariables = generateCSSVariables()
 
+console.log('tailwind plugin.js')
+
 let globalStyles = (theme) => ({
   html: {
     'font-family': `InterVar, ${theme('fontFamily.sans')}`,
@@ -337,7 +339,7 @@ export default plugin(
             css: {
               fontSize: '14px',
               fontWeight: 420,
-              lineHeight: 1.5,
+              lineHeight: 1.7,
               letterSpacing: '0.02em',
               h1: {
                 fontSize: em(20, 14),
@@ -355,37 +357,49 @@ export default plugin(
                 fontSize: em(13, 14),
               },
               p: {
-                marginTop: '0.5rem',
-                marginBottom: '0.5rem',
+                marginTop: '0rem',
+                marginBottom: '0rem',
+              },
+              'p ~ ol > li': {
+                marginTop: '0rem',
+                '> p': {
+                  marginTop: '0rem',
+                },
+              },
+              'p ~ ul > li': {
+                marginTop: '0rem',
+                '> p': {
+                  marginTop: '0rem',
+                },
               },
               'ul > li': {
-                margin: '0.5rem 0',
+                margin: '0.75rem 0',
                 '> p': {
-                  margin: '0.5rem 0',
+                  margin: '0.75rem 0',
                 },
                 '> p:first-child:last-child': {
-                  margin: '0.5rem 0',
+                  margin: '0.75rem 0',
                 },
                 '> p:first-child': {
-                  marginTop: '0.5rem',
+                  marginTop: '0.75rem',
                 },
                 '> p:last-child': {
-                  marginBottom: '0.5rem',
+                  marginBottom: '0.75rem',
                 },
               },
               'ol > li': {
-                margin: '0.5rem 0',
+                margin: '0.75rem 0',
                 '> p': {
-                  margin: '0.5rem 0',
+                  margin: '0.75rem 0',
                 },
                 '> p:first-child:last-child': {
-                  margin: '0.5rem 0',
+                  margin: '0.75rem 0',
                 },
                 '> p:first-child': {
-                  marginTop: '0.5rem',
+                  marginTop: '0.75rem',
                 },
                 '> p:last-child': {
-                  marginBottom: '0.5rem',
+                  marginBottom: '0.75rem',
                 },
               },
             },
@@ -393,7 +407,7 @@ export default plugin(
         }),
       },
     },
-  }
+  },
 )
 
 function em(pixels, base = 16) {
