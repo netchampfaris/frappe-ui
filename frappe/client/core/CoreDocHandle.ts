@@ -2,15 +2,9 @@ import type { Doc } from './types'
 import type { DocStore } from './DocStore'
 import type { RequestManager } from './RequestManager'
 import type { Operation } from './Operation'
+import { invokeMethod, type DocMethods, type MethodDef } from './Methods'
 
-export interface MethodDef {
-  method: string
-  httpMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
-  /** Builds the body/params from the call arguments. */
-  args?: (...args: any[]) => Record<string, any>
-}
-
-export type DocMethods = Record<string, MethodDef>
+export type { DocMethods, MethodDef } from './Methods'
 
 export type MappedDocMethod<TArgs extends any[], TResult = any> = Operation<
   TArgs extends [] ? void : Parameters<(...a: TArgs) => void>[0],
@@ -101,7 +95,7 @@ export function createCoreDocHandle<TDoc extends Doc>(
 
     async callOptimistic(values, updater, rollback) {
       const snapshot = snapshotDoc()
-      updater(store)
+      if (updater) updater(store)
       try {
         return await setValue.call(values)
       } catch (e) {
@@ -128,7 +122,7 @@ export function createCoreDocHandle<TDoc extends Doc>(
 
     async callOptimistic(_, updater, rollback) {
       const snapshot = snapshotDoc()
-      updater(store)
+      if (updater) updater(store)
       try {
         await deleteOp.call()
       } catch (e) {
@@ -146,23 +140,19 @@ export function createCoreDocHandle<TDoc extends Doc>(
   const mappedMethods: Record<string, Operation<any, any>> = {}
   if (docMethods) {
     for (const [key, def] of Object.entries(docMethods)) {
-      const { method, httpMethod = 'POST', args } = def
       mappedMethods[key] = {
         async call(params: any) {
-          const body = args ? args(params) : (params ?? {})
-          const json = await requestManager.fetch({
-            url: `/api/v2/document/${doctype}/${name}/method/${method}`,
-            method: httpMethod,
-            body,
+          return invokeMethod({
+            requestManager,
+            store,
+            url: `/api/v2/document/${doctype}/${name}/method/${def.method}`,
+            def,
+            params,
           })
-          if (json?.docs?.length) {
-            store.setMany(json.docs)
-          }
-          return json
         },
         async callOptimistic(params, updater, rollback) {
           const snapshot = snapshotDoc()
-          updater(store)
+          if (updater) updater(store)
           try {
             return await mappedMethods[key].call(params)
           } catch (e) {

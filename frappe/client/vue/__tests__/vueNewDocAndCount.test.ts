@@ -88,7 +88,9 @@ describe('createVueNewDocHandle', () => {
       }),
     )!
 
-    const result = await handle.insert.call({ description: 'Extra desc' } as any)
+    const result = await handle.insert.call({
+      description: 'Extra desc',
+    } as any)
     expect(result.description).toBe('Extra desc')
     scope.stop()
   })
@@ -143,7 +145,9 @@ describe('createVueCountHandle', () => {
       }),
     )!
     await handle.promise
-    const expected = Object.values(mockTodos).filter((t) => t.status === 'Open').length
+    const expected = Object.values(mockTodos).filter(
+      (t) => t.status === 'Open',
+    ).length
     expect(handle.data).toBe(expected)
     scope.stop()
   })

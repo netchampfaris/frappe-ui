@@ -1,5 +1,3 @@
-import type { DocStore } from './DocStore'
-
 export interface SocketManager {
   connect(): void
   disconnect(): void
@@ -14,15 +12,6 @@ export interface SocketManager {
    * Returns an unsubscribe function.
    */
   onDocUpdate(doctype: string, callback: (name: string) => void): () => void
-  /**
-   * Subscribe to doc_rename events for a specific doctype.
-   * Note: Frappe publishes doc_rename to the doc room (requires per-doc subscription).
-   * Returns an unsubscribe function.
-   */
-  onDocRename(
-    doctype: string,
-    callback: (newName: string, oldName: string) => void,
-  ): () => void
 }
 
 /** No-op implementation for environments without Socket.IO. */
@@ -37,9 +26,6 @@ export function createNoopSocketManager(): SocketManager {
     onDocUpdate(_doctype, _callback) {
       return () => {}
     },
-    onDocRename(_doctype, _callback) {
-      return () => {}
-    },
   }
 }
 
@@ -50,13 +36,8 @@ export function createNoopSocketManager(): SocketManager {
  * the given doctype's list was created/updated/deleted. Sent to the doctype
  * room (requires `doctype_subscribe` from the client).
  *
- * `doc_rename` payload: `{ doctype, old, new }` — sent to the doc room
- * (requires `doc_subscribe` for the specific document).
  */
-export function createSocketManager(
-  store: DocStore,
-  socketIo: any,
-): SocketManager {
+export function createSocketManager(socketIo: any): SocketManager {
   const handlers = new Map<string, Set<(...args: any[]) => void>>()
   // Reference count per doctype for server-side room membership.
   const doctypeRefCount = new Map<string, number>()
@@ -73,21 +54,6 @@ export function createSocketManager(
       emit('list_update', payload)
       if (payload?.doctype) {
         emit(`list_update:${payload.doctype}`, String(payload.name))
-      }
-    },
-  )
-
-  // doc_rename: sent to the doc room (not the doctype room).
-  // Payload: { doctype, old, new }
-  socketIo.on(
-    'doc_rename',
-    (payload: { doctype: string; old: string; new: string }) => {
-      if (payload?.doctype && payload?.old) {
-        store.remove(payload.doctype, payload.old)
-      }
-      emit('doc_rename', payload)
-      if (payload?.doctype) {
-        emit(`doc_rename:${payload.doctype}`, payload.new, payload.old)
       }
     },
   )
@@ -144,23 +110,16 @@ export function createSocketManager(
         unsubRoom()
       }
     },
-    onDocRename(doctype, callback) {
-      // doc_rename goes to the doc room, not the doctype room.
-      // This only fires if the specific document is subscribed via doc_subscribe.
-      const unsubHandler = on(`doc_rename:${doctype}`, callback)
-      return unsubHandler
-    },
   }
 }
 
 /**
  * Creates a SocketManager that connects lazily on the first `on()` call.
  * `socketFactory` is called once to create the raw Socket.IO instance.
- * `doc_update` and `doc_rename` events are routed through the DocStore;
+ * `list_update` events are routed through the doctype subscription helpers;
  * all other events delegate directly to the raw socket.
  */
 export function createLazySocketManager(
-  store: DocStore,
   socketFactory: () => any,
 ): SocketManager {
   let socketManager: SocketManager | null = null
@@ -171,7 +130,7 @@ export function createLazySocketManager(
   function ensureConnected() {
     if (socketManager) return
     rawSocket = socketFactory()
-    socketManager = createSocketManager(store, rawSocket)
+    socketManager = createSocketManager(rawSocket)
     for (const { event, handler } of pending) {
       rawSocket.on(event, handler)
     }
@@ -186,7 +145,7 @@ export function createLazySocketManager(
       rawSocket?.disconnect()
     },
     on(event, handler) {
-      if (event === 'list_update' || event === 'doc_rename') {
+      if (event === 'list_update') {
         ensureConnected()
         return socketManager!.on(event, handler)
       }
@@ -204,10 +163,6 @@ export function createLazySocketManager(
     onDocUpdate(doctype, callback) {
       ensureConnected()
       return socketManager!.onDocUpdate(doctype, callback)
-    },
-    onDocRename(doctype, callback) {
-      ensureConnected()
-      return socketManager!.onDocRename(doctype, callback)
     },
   }
 }

@@ -10,6 +10,7 @@ import {
 } from './SocketManager'
 import { createCoreDocHandle, type DocMethods } from './CoreDocHandle'
 import { createCoreListHandle, type GetListParams } from './CoreListHandle'
+import { invokeMethod, type ControllerMethods, type MethodDef } from './Methods'
 import type { Doc } from './types'
 import type { FrappeResponseError } from './FrappeResponseError'
 import type { RequestConfig } from './types'
@@ -23,21 +24,14 @@ export interface CreateCoreClientOptions {
 }
 
 export interface DoctypeDefinition<
-  TControllerMethods extends Record<string, MethodDef> = {},
+  TControllerMethods extends ControllerMethods = {},
   TDocMethods extends DocMethods = {},
 > {
   doctype: string
   docMethods?: TDocMethods
   controllerMethods?: TControllerMethods
 }
-
-export interface MethodDef {
-  method: string
-  httpMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
-  args?: (...args: any[]) => Record<string, any>
-}
-
-export type ControllerMethods = Record<string, MethodDef>
+export type { ControllerMethods, MethodDef } from './Methods'
 
 export interface CoreClientResult {
   /** Curried factory for creating doctype-bound handles. */
@@ -83,7 +77,7 @@ export function createCoreClient(
 
   let socket: SocketManager
   if (realtime && typeof realtime === 'object' && realtime.socketIo) {
-    socket = createSocketManager(store, realtime.socketIo)
+    socket = createSocketManager(realtime.socketIo)
   } else {
     socket = createNoopSocketManager()
   }
@@ -101,19 +95,15 @@ export function createCoreClient(
       const mappedControllerMethods: Record<string, any> = {}
       if (controllerMethods) {
         for (const [key, def] of Object.entries(controllerMethods)) {
-          const { method, httpMethod = 'POST', args } = def
           mappedControllerMethods[key] = {
             async call(params: any) {
-              const body = args ? args(params) : (params ?? {})
-              const json = await requestManager.fetch({
-                url: `/api/v2/method/${doctype}/${method}`,
-                method: httpMethod,
-                body,
+              return invokeMethod({
+                requestManager,
+                store,
+                url: `/api/v2/method/${doctype}/${def.method}`,
+                def,
+                params,
               })
-              if (json?.docs?.length) {
-                store.setMany(json.docs)
-              }
-              return json
             },
           }
         }

@@ -152,14 +152,6 @@ interface SocketManager {
    * Returns an unsubscribe function.
    */
   onDocUpdate(doctype: string, callback: (name: string) => void): () => void
-  /**
-   * Subscribe to doc_rename events for a specific doctype.
-   * Returns an unsubscribe function.
-   */
-  onDocRename(
-    doctype: string,
-    callback: (newName: string, oldName: string) => void,
-  ): () => void
 }
 ```
 
@@ -167,15 +159,11 @@ interface SocketManager {
 room when any doc in that doctype is saved. No full doc data is included; the
 list handle fetches the changed doc individually (or refetches the whole page).
 
-**`doc_rename`** payload: `{ doctype, old, new }` — sent to the doc room.
-Triggers `DocStore.remove(doctype, oldName)` and emits the event to local
-subscribers.
-
 Two factory functions are provided:
 - `createNoopSocketManager()` — all methods are no-ops; used when `realtime` is false.
 - `createSocketManager(store, socketIo)` — full implementation.
 - `createLazySocketManager(store, initFn)` — wraps `createSocketManager`; defers
-  `initFn()` until the first subscriber calls `onDocUpdate`/`onDocRename`.
+  `initFn()` until the first subscriber calls `onDocUpdate`.
 
 ---
 
@@ -261,7 +249,7 @@ class FrappeResponseError extends Error {
 - [x] DocStore: get/set/remove/subscribe/subscribeDoctype/subscribeAll/hydrate
 - [x] RequestManager: fetch + fetchDoc with dedup + CSRF + abort + global hooks
 - [x] CacheAdapter: IDB write-behind + loadAll + connectCache
-- [x] SocketManager: list_update + doc_rename with onDocUpdate/onDocRename helpers
+- [x] SocketManager: list_update with onDocUpdate helper
 - [x] FrappeResponseError with structured error types
 - [x] Operation shape with call/callOptimistic
 - [x] CoreDocHandle with dispose

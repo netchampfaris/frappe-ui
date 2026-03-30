@@ -12,6 +12,11 @@ import {
 import type { Doc } from '../core/types'
 import type { FrappeResponseError } from '../core/FrappeResponseError'
 import type { DocMethods } from '../core/CoreDocHandle'
+import {
+  invokeMethod,
+  type ControllerMethods,
+  type MethodDef,
+} from '../core/Methods'
 import { wrapOperation } from './ReactiveOperation'
 import {
   createVueDocHandle,
@@ -43,13 +48,7 @@ export interface CreateVueClientOptions {
   onResponse?: (response: any) => void
 }
 
-export interface MethodDef {
-  method: string
-  httpMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
-  args?: (...args: any[]) => Record<string, any>
-}
-
-export type ControllerMethods = Record<string, MethodDef>
+export type { ControllerMethods, MethodDef } from '../core/Methods'
 
 export interface DoctypeDefinition<
   TControllerMethods extends ControllerMethods = {},
@@ -91,8 +90,6 @@ export interface VueDoctypeInstance<
   bulkUpdate: FlatOperation<Array<{ name: string } & Partial<TDoc>>, TDoc[]>
   /** Subscribe to realtime doc_update events for this doctype. Returns unsubscribe fn. */
   onUpdate(callback: (name: string) => void): () => void
-  /** Subscribe to realtime doc_rename events for this doctype. Returns unsubscribe fn. */
-  onRename(callback: (newName: string, oldName: string) => void): () => void
   [key: string]: any
 }
 
@@ -134,7 +131,7 @@ export function createClient(
   let socket: SocketManager
 
   if (realtime) {
-    socket = createLazySocketManager(store, initFrappeSocket)
+    socket = createLazySocketManager(initFrappeSocket)
   } else {
     socket = createNoopSocketManager()
   }
@@ -155,19 +152,15 @@ export function createClient(
       > = {}
       if (controllerMethods) {
         for (const [key, def] of Object.entries(controllerMethods)) {
-          const { method, httpMethod = 'POST', args } = def
           mappedControllerMethods[key] = wrapOperation({
             async call(params: any) {
-              const body = args ? args(params) : (params ?? {})
-              const json = await requestManager.fetch({
-                url: `/api/v2/method/${doctype}/${method}`,
-                method: httpMethod,
-                body,
+              return invokeMethod({
+                requestManager,
+                store,
+                url: `/api/v2/method/${doctype}/${def.method}`,
+                def,
+                params,
               })
-              if (json?.docs?.length) {
-                store.setMany(json.docs)
-              }
-              return json
             },
             async callOptimistic(params, updater, rollback) {
               if (updater) updater(store)
@@ -272,12 +265,6 @@ export function createClient(
         return socket.onDocUpdate(doctype, callback)
       }
 
-      function onRename(
-        callback: (newName: string, oldName: string) => void,
-      ): () => void {
-        return socket.onDocRename(doctype, callback)
-      }
-
       // Wrap in reactive() so nested ReactiveOperation Refs auto-unwrap:
       // ToDo.bulkDelete.loading → boolean (not Ref<boolean>)
       return reactive({
@@ -286,7 +273,6 @@ export function createClient(
         bulkDelete,
         bulkUpdate,
         onUpdate,
-        onRename,
 
         getDoc(
           name: MaybeRefOrGetter<string>,
