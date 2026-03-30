@@ -71,14 +71,14 @@ export type GetListOptions<TDoc extends Doc> = Omit<
   'store' | 'requestManager' | 'doctype' | 'socket'
 >
 
-export interface VueDoctypeInstance<
+export interface VueDoctypeInstanceBase<
   TDoc extends Doc,
-  TControllerMethods extends ControllerMethods = {},
+  TDocMethods extends DocMethods = {},
 > {
   getDoc(
     name: MaybeRefOrGetter<string>,
     options?: GetDocOptions<TDoc>,
-  ): VueDocHandle<TDoc>
+  ): VueDocHandle<TDoc, TDocMethods>
   getList(options?: GetListOptions<TDoc>): VueListHandle<TDoc>
   /** Create a local-only reactive draft doc for form-based create flows. */
   newDoc(defaults?: Partial<TDoc>): VueNewDocHandle<TDoc>
@@ -90,8 +90,20 @@ export interface VueDoctypeInstance<
   bulkUpdate: FlatOperation<Array<{ name: string } & Partial<TDoc>>, TDoc[]>
   /** Subscribe to realtime doc_update events for this doctype. Returns unsubscribe fn. */
   onUpdate(callback: (name: string) => void): () => void
-  [key: string]: any
 }
+
+export type VueControllerMethodHandles<
+  TControllerMethods extends ControllerMethods,
+> = {
+  [K in keyof TControllerMethods]: FlatOperation<any, any>
+}
+
+export type VueDoctypeInstance<
+  TDoc extends Doc,
+  TControllerMethods extends ControllerMethods = {},
+  TDocMethods extends DocMethods = {},
+> = VueDoctypeInstanceBase<TDoc, TDocMethods> &
+  VueControllerMethodHandles<TControllerMethods>
 
 export interface VueClientResult {
   defineDoctype: <TDoc extends Doc>() => <
@@ -99,7 +111,7 @@ export interface VueClientResult {
     TDocMethods extends DocMethods = {},
   >(
     definition: DoctypeDefinition<TControllerMethods, TDocMethods>,
-  ) => VueDoctypeInstance<TDoc, TControllerMethods>
+  ) => VueDoctypeInstance<TDoc, TControllerMethods, TDocMethods>
   store: DocStore
   socket: SocketManager
 }
@@ -142,7 +154,7 @@ export function createClient(
       TDocMethods extends DocMethods = {},
     >(
       definition: DoctypeDefinition<TControllerMethods, TDocMethods>,
-    ): VueDoctypeInstance<TDoc, TControllerMethods> {
+    ): VueDoctypeInstance<TDoc, TControllerMethods, TDocMethods> {
       const { doctype, docMethods, controllerMethods } = definition
 
       // Map controller-level methods as reactive operations
@@ -277,8 +289,8 @@ export function createClient(
         getDoc(
           name: MaybeRefOrGetter<string>,
           docOptions?: GetDocOptions<TDoc>,
-        ): VueDocHandle<TDoc> {
-          return createVueDocHandle<TDoc>({
+        ): VueDocHandle<TDoc, TDocMethods> {
+          return createVueDocHandle<TDoc, TDocMethods>({
             store,
             requestManager,
             doctype,
@@ -315,7 +327,11 @@ export function createClient(
             ...countOptions,
           })
         },
-      }) as unknown as VueDoctypeInstance<TDoc, TControllerMethods>
+      }) as unknown as VueDoctypeInstance<
+        TDoc,
+        TControllerMethods,
+        TDocMethods
+      >
     }
   }
 

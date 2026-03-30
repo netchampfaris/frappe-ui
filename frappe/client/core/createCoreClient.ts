@@ -45,16 +45,26 @@ export interface CoreClientResult {
   socket: SocketManager
 }
 
-export interface DoctypeInstance<
+export interface DoctypeInstanceBase<
+  TDoc extends Doc,
+  TDocMethods extends DocMethods = {},
+> {
+  getDoc(name: string): CoreDocHandle<TDoc, TDocMethods>
+  getList(params?: GetListParams): ReturnType<typeof createCoreListHandle<TDoc>>
+}
+
+export type DoctypeControllerMethodHandles<
+  TControllerMethods extends ControllerMethods,
+> = {
+  [K in keyof TControllerMethods]: Operation<any, any>
+}
+
+export type DoctypeInstance<
   TDoc extends Doc,
   TControllerMethods extends ControllerMethods = {},
   TDocMethods extends DocMethods = {},
-> {
-  getDoc(name: string): ReturnType<typeof createCoreDocHandle<TDoc>>
-  getList(params?: GetListParams): ReturnType<typeof createCoreListHandle<TDoc>>
-  // Controller-level methods exposed as Operations
-  [key: string]: any
-}
+> = DoctypeInstanceBase<TDoc, TDocMethods> &
+  DoctypeControllerMethodHandles<TControllerMethods>
 
 export function createCoreClient(
   options: CreateCoreClientOptions = {},
@@ -111,7 +121,7 @@ export function createCoreClient(
 
       return {
         getDoc(name: string) {
-          return createCoreDocHandle<TDoc>({
+          return createCoreDocHandle<TDoc, TDocMethods>({
             store,
             requestManager,
             doctype,
@@ -128,7 +138,7 @@ export function createCoreClient(
           })
         },
         ...mappedControllerMethods,
-      }
+      } as DoctypeInstance<TDoc, TControllerMethods, TDocMethods>
     }
   }
 
