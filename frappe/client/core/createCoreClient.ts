@@ -16,7 +16,7 @@ import {
   type MethodDef,
   type TypedMethodOperation,
 } from './Methods'
-import type { Doc } from './types'
+import type { ClientDoc } from './types'
 import type { FrappeResponseError } from './FrappeResponseError'
 import type { RequestConfig } from './types'
 
@@ -40,7 +40,7 @@ export type { ControllerMethods, MethodDef } from './Methods'
 
 export interface CoreClientResult {
   /** Curried factory for creating doctype-bound handles. */
-  defineDoctype: <TDoc extends Doc>() => <
+  defineDoctype: <TDoc extends ClientDoc>() => <
     TControllerMethods extends ControllerMethods = {},
     TDocMethods extends DocMethods = {},
   >(
@@ -51,7 +51,7 @@ export interface CoreClientResult {
 }
 
 export interface DoctypeInstanceBase<
-  TDoc extends Doc,
+  TDoc extends ClientDoc,
   TDocMethods extends DocMethods = {},
 > {
   getDoc(name: string): CoreDocHandle<TDoc, TDocMethods>
@@ -65,7 +65,7 @@ export type DoctypeControllerMethodHandles<
 }
 
 export type DoctypeInstance<
-  TDoc extends Doc,
+  TDoc extends ClientDoc,
   TControllerMethods extends ControllerMethods = {},
   TDocMethods extends DocMethods = {},
 > = DoctypeInstanceBase<TDoc, TDocMethods> &
@@ -97,7 +97,7 @@ export function createCoreClient(
     socket = createNoopSocketManager()
   }
 
-  function defineDoctype<TDoc extends Doc>() {
+  function defineDoctype<TDoc extends ClientDoc>() {
     return function <
       TControllerMethods extends ControllerMethods = {},
       TDocMethods extends DocMethods = {},

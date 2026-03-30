@@ -1,4 +1,5 @@
 import { ref, reactive } from 'vue'
+import type { ClientDoc } from '../core/types'
 import type { FrappeResponseError } from '../core/FrappeResponseError'
 import { FrappeResponseError as FrappeResponseErrorClass } from '../core/FrappeResponseError'
 
@@ -19,13 +20,24 @@ export interface UploadFileOptions {
   baseUrl?: string
 }
 
-export interface UploadHandle {
+export interface FileDocument extends ClientDoc {
+  doctype?: 'File'
+  file_name: string
+  file_url: string
+  is_private: 0 | 1 | boolean
+  attached_to_doctype?: string
+  attached_to_name?: string
+  attached_to_field?: string
+  folder?: string
+}
+
+export interface UploadHandle<TFile extends FileDocument = FileDocument> {
   /** Start the upload. */
   call(): void
   /** Upload progress as a percentage (0–100). */
   progress: number
   /** The uploaded File document — available on success. */
-  data: Record<string, any> | null
+  data: TFile | null
   /** Error on failure. */
   error: FrappeResponseError | null
   /** True while the upload is in progress. */
@@ -40,7 +52,9 @@ function getCsrfToken(): string {
   return match ? decodeURIComponent(match[1]) : ''
 }
 
-export function uploadFile(options: UploadFileOptions): UploadHandle {
+export function uploadFile<TFile extends FileDocument = FileDocument>(
+  options: UploadFileOptions,
+): UploadHandle<TFile> {
   const {
     file,
     doctype,
@@ -52,7 +66,7 @@ export function uploadFile(options: UploadFileOptions): UploadHandle {
   } = options
 
   const progress = ref(0)
-  const data = ref<Record<string, any> | null>(null)
+  const data = ref<TFile | null>(null)
   const error = ref<FrappeResponseError | null>(null)
   const loading = ref(false)
 
@@ -103,7 +117,7 @@ export function uploadFile(options: UploadFileOptions): UploadHandle {
         return
       }
       if (xhr!.status >= 200 && xhr!.status < 300) {
-        data.value = json?.data ?? json
+        data.value = (json?.data ?? json) as TFile
         progress.value = 100
       } else {
         const errs = json?.errors ?? []
@@ -155,5 +169,5 @@ export function uploadFile(options: UploadFileOptions): UploadHandle {
     error,
     loading,
     abort,
-  }) as unknown as UploadHandle
+  }) as unknown as UploadHandle<TFile>
 }

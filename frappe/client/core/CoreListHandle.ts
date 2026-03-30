@@ -1,4 +1,4 @@
-import type { Doc } from './types'
+import type { ClientDoc, Doc } from './types'
 import type { DocStore } from './DocStore'
 import type { RequestManager } from './RequestManager'
 import type { Operation } from './Operation'
@@ -12,7 +12,7 @@ export interface GetListParams {
   start?: number
 }
 
-export interface CoreListHandle<TDoc extends Doc> {
+export interface CoreListHandle<TDoc extends ClientDoc> {
   /** Current list snapshot — updated via DocStore subscription. */
   data: TDoc[]
   /** Resolves when the initial fetch completes. */
@@ -28,7 +28,7 @@ export interface CoreListHandle<TDoc extends Doc> {
   insert: Operation<Partial<TDoc>, TDoc>
 }
 
-export interface CoreListHandleOptions<TDoc extends Doc> {
+export interface CoreListHandleOptions<TDoc extends ClientDoc> {
   store: DocStore
   requestManager: RequestManager
   doctype: string
@@ -39,7 +39,7 @@ export interface CoreListHandleOptions<TDoc extends Doc> {
   start?: number
 }
 
-export function createCoreListHandle<TDoc extends Doc>(
+export function createCoreListHandle<TDoc extends ClientDoc>(
   options: CoreListHandleOptions<TDoc>,
 ): CoreListHandle<TDoc> {
   const {

@@ -64,14 +64,18 @@ export interface DoctypeDefinition<
 export type GetDocOptions<
   TDoc extends ClientDoc,
   TDocMethods extends DocMethods = {},
+  TTransformedDoc extends ClientDoc = TDoc,
 > = Omit<
-  VueDocHandleOptions<TDoc, TDocMethods>,
+  VueDocHandleOptions<TDoc, TTransformedDoc, TDocMethods>,
   'store' | 'requestManager' | 'doctype' | 'name'
 >
 
 /** Options for getList, minus the wiring that createVueClient provides. */
-export type GetListOptions<TDoc extends ClientDoc> = Omit<
-  VueListHandleOptions<TDoc>,
+export type GetListOptions<
+  TDoc extends ClientDoc,
+  TTransformedDoc extends ClientDoc = TDoc,
+> = Omit<
+  VueListHandleOptions<TDoc, TTransformedDoc>,
   'store' | 'requestManager' | 'doctype' | 'socket'
 >
 
@@ -79,11 +83,13 @@ export interface VueDoctypeInstanceBase<
   TDoc extends ClientDoc,
   TDocMethods extends DocMethods = {},
 > {
-  getDoc(
+  getDoc<TTransformedDoc extends ClientDoc = TDoc>(
     name: MaybeRefOrGetter<string>,
-    options?: GetDocOptions<TDoc, TDocMethods>,
-  ): VueDocHandle<TDoc, TDocMethods>
-  getList(options?: GetListOptions<TDoc>): VueListHandle<TDoc>
+    options?: GetDocOptions<TDoc, TDocMethods, TTransformedDoc>,
+  ): VueDocHandle<TDoc, TTransformedDoc, TDocMethods>
+  getList<TTransformedDoc extends ClientDoc = TDoc>(
+    options?: GetListOptions<TDoc, TTransformedDoc>,
+  ): VueListHandle<TDoc, TTransformedDoc>
   /** Create a local-only reactive draft doc for form-based create flows. */
   newDoc(defaults?: Partial<TDoc>): VueNewDocHandle<TDoc>
   /** Reactive doc count with optional filters. */
@@ -290,11 +296,11 @@ export function createClient(
         bulkUpdate,
         onUpdate,
 
-        getDoc(
+        getDoc<TTransformedDoc extends ClientDoc = TDoc>(
           name: MaybeRefOrGetter<string>,
-          docOptions?: GetDocOptions<TDoc, TDocMethods>,
-        ): VueDocHandle<TDoc, TDocMethods> {
-          return createVueDocHandle<TDoc, TDocMethods>({
+          docOptions?: GetDocOptions<TDoc, TDocMethods, TTransformedDoc>,
+        ): VueDocHandle<TDoc, TTransformedDoc, TDocMethods> {
+          return createVueDocHandle<TDoc, TTransformedDoc, TDocMethods>({
             store,
             requestManager,
             doctype,
@@ -304,8 +310,10 @@ export function createClient(
           })
         },
 
-        getList(listOptions?: GetListOptions<TDoc>): VueListHandle<TDoc> {
-          return createVueListHandle<TDoc>({
+        getList<TTransformedDoc extends ClientDoc = TDoc>(
+          listOptions?: GetListOptions<TDoc, TTransformedDoc>,
+        ): VueListHandle<TDoc, TTransformedDoc> {
+          return createVueListHandle<TDoc, TTransformedDoc>({
             store,
             requestManager,
             doctype,
