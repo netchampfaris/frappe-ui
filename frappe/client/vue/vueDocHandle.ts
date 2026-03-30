@@ -16,6 +16,7 @@ import type { FrappeResponseError } from '../core/FrappeResponseError'
 import type { Operation } from '../core/Operation'
 import type { DocMethods } from '../core/CoreDocHandle'
 import { invokeMethod } from '../core/Methods'
+import { runOptimisticMutation } from '../core/optimisticMutation'
 import { wrapOperation, type ReactiveOperation } from './ReactiveOperation'
 
 export interface VueDocHandleOptions<TDoc extends Doc> {
@@ -185,25 +186,26 @@ export function createVueDocHandle<TDoc extends Doc>(
 
     async callOptimistic(values, updater, rollback) {
       const snapshot = snapshotDoc()
-      if (updater) {
-        updater(store)
-      } else {
-        // Auto: patch current doc with the provided values
-        const current = store.get(doctype, currentName)
-        if (current) store.set({ ...current, ...(values as object) })
-      }
-      try {
-        return await setCoreOp.call(values)
-      } catch (e) {
-        if (rollback) {
-          rollback(store)
-        } else if (snapshot) {
-          store.set(snapshot)
-        } else {
-          store.remove(doctype, currentName)
-        }
-        throw e
-      }
+      return runOptimisticMutation({
+        store,
+        run: () => setCoreOp.call(values),
+        apply: () => {
+          if (updater) {
+            updater(store)
+            return
+          }
+          const current = store.get(doctype, currentName)
+          if (current) store.set({ ...current, ...(values as object) })
+        },
+        rollback,
+        restore: () => {
+          if (snapshot) {
+            store.set(snapshot)
+          } else {
+            store.remove(doctype, currentName)
+          }
+        },
+      })
     },
   }
 
@@ -218,21 +220,23 @@ export function createVueDocHandle<TDoc extends Doc>(
 
     async callOptimistic(_, updater, rollback) {
       const snapshot = snapshotDoc()
-      if (updater) {
-        updater(store)
-      } else {
-        store.remove(doctype, currentName)
-      }
-      try {
-        await deleteCoreOp.call()
-      } catch (e) {
-        if (rollback) {
-          rollback(store)
-        } else if (snapshot) {
-          store.set(snapshot)
-        }
-        throw e
-      }
+      return runOptimisticMutation({
+        store,
+        run: () => deleteCoreOp.call(),
+        apply: () => {
+          if (updater) {
+            updater(store)
+          } else {
+            store.remove(doctype, currentName)
+          }
+        },
+        rollback,
+        restore: () => {
+          if (snapshot) {
+            store.set(snapshot)
+          }
+        },
+      })
     },
   }
 
@@ -255,17 +259,17 @@ export function createVueDocHandle<TDoc extends Doc>(
         },
         async callOptimistic(params, updater, rollback) {
           const snapshot = snapshotDoc()
-          if (updater) updater(store)
-          try {
-            return await coreOp.call(params)
-          } catch (e) {
-            if (rollback) {
-              rollback(store)
-            } else if (snapshot) {
-              store.set(snapshot)
-            }
-            throw e
-          }
+          return runOptimisticMutation({
+            store,
+            run: () => coreOp.call(params),
+            apply: () => updater?.(store),
+            rollback,
+            restore: () => {
+              if (snapshot) {
+                store.set(snapshot)
+              }
+            },
+          })
         },
       }
       mappedMethods[key] = wrapOperation(coreOp, { onError })

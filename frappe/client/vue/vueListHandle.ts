@@ -15,6 +15,7 @@ import type { RequestManager } from '../core/RequestManager'
 import type { FrappeResponseError } from '../core/FrappeResponseError'
 import type { Operation } from '../core/Operation'
 import type { SocketManager } from '../core/SocketManager'
+import { runOptimisticMutation } from '../core/optimisticMutation'
 import { wrapOperation, type ReactiveOperation } from './ReactiveOperation'
 
 /**
@@ -347,24 +348,25 @@ export function createVueListHandle<TDoc extends Doc>(
       } & Partial<TDoc>
       const existing = store.get(doctype, docName)
       const snapshot = existing ? ({ ...existing } as Doc) : null
-      if (updater) {
-        updater(store)
-      } else {
-        // Auto: patch the target doc with provided values
-        if (existing) store.set({ ...existing, ...rest })
-      }
-      try {
-        return await setCoreOp.call(values)
-      } catch (e) {
-        if (rollback) {
-          rollback(store)
-        } else if (snapshot) {
-          store.set(snapshot)
-        } else {
-          store.remove(doctype, docName)
-        }
-        throw e
-      }
+      return runOptimisticMutation({
+        store,
+        run: () => setCoreOp.call(values),
+        apply: () => {
+          if (updater) {
+            updater(store)
+          } else if (existing) {
+            store.set({ ...existing, ...rest })
+          }
+        },
+        rollback,
+        restore: () => {
+          if (snapshot) {
+            store.set(snapshot)
+          } else {
+            store.remove(doctype, docName)
+          }
+        },
+      })
     },
   }
 
@@ -382,24 +384,23 @@ export function createVueListHandle<TDoc extends Doc>(
       const namesBefore = [...names.value]
       const existing = store.get(doctype, docName)
       const snapshot = existing ? ({ ...existing } as Doc) : null
-      if (updater) {
-        updater(store)
-      } else {
-        // Auto: remove doc from list and store immediately
-        names.value = names.value.filter((n) => n !== docName)
-        store.remove(doctype, docName)
-      }
-      try {
-        await deleteCoreOp.call(docName)
-      } catch (e) {
-        if (rollback) {
-          rollback(store)
-        } else {
+      return runOptimisticMutation({
+        store,
+        run: () => deleteCoreOp.call(docName),
+        apply: () => {
+          if (updater) {
+            updater(store)
+          } else {
+            names.value = names.value.filter((n) => n !== docName)
+            store.remove(doctype, docName)
+          }
+        },
+        rollback,
+        restore: () => {
           names.value = namesBefore
           if (snapshot) store.set(snapshot)
-        }
-        throw e
-      }
+        },
+      })
     },
   }
 
@@ -418,13 +419,15 @@ export function createVueListHandle<TDoc extends Doc>(
 
     async callOptimistic(values, updater, rollback) {
       const namesBefore = [...names.value]
-      if (updater) updater(store)
-      try {
-        return await insertCoreOp.call(values)
-      } catch (e) {
-        rollback ? rollback(store) : (names.value = namesBefore)
-        throw e
-      }
+      return runOptimisticMutation({
+        store,
+        run: () => insertCoreOp.call(values),
+        apply: () => updater?.(store),
+        rollback,
+        restore: () => {
+          names.value = namesBefore
+        },
+      })
     },
   }
 
