@@ -9,7 +9,7 @@ import {
   type MaybeRefOrGetter,
 } from 'vue'
 import { tryOnScopeDispose, useDebounceFn } from '@vueuse/core'
-import type { Doc } from '../core/types'
+import type { ClientDoc, Doc } from '../core/types'
 import type { DocStore } from '../core/DocStore'
 import type { RequestManager } from '../core/RequestManager'
 import type { FrappeResponseError } from '../core/FrappeResponseError'
@@ -34,7 +34,7 @@ export type FiltersOption =
   | ReactiveFilters
   | MaybeRefOrGetter<Record<string, any>>
 
-export interface VueListHandleOptions<TDoc extends Doc> {
+export interface VueListHandleOptions<TDoc extends ClientDoc> {
   store: DocStore
   requestManager: RequestManager
   doctype: string
@@ -72,7 +72,7 @@ export interface InsertOptions {
  * Like FlatOperation but callOptimistic accepts an optional `tempDoc` placeholder
  * instead of a store updater function. Pass `options.at` to control position.
  */
-export interface InsertOperation<TDoc extends Doc> {
+export interface InsertOperation<TDoc extends ClientDoc> {
   call(values: Partial<TDoc>, options?: InsertOptions): Promise<TDoc>
   /**
    * Insert with an optional optimistic placeholder.
@@ -97,7 +97,7 @@ export interface InsertOperation<TDoc extends Doc> {
  * Public shape returned by createVueListHandle (or GPTask.getList).
  * All ref/computed properties are automatically unwrapped via reactive().
  */
-export interface VueListHandle<TDoc extends Doc> {
+export interface VueListHandle<TDoc extends ClientDoc> {
   /** Current page of docs — each backed by DocStore. */
   data: TDoc[]
   loading: boolean
@@ -115,7 +115,7 @@ export interface VueListHandle<TDoc extends Doc> {
   insert: InsertOperation<TDoc>
 }
 
-export function createVueListHandle<TDoc extends Doc>(
+export function createVueListHandle<TDoc extends ClientDoc>(
   options: VueListHandleOptions<TDoc>,
 ): VueListHandle<TDoc> {
   const {

@@ -9,13 +9,14 @@ import {
   createLazySocketManager,
   type SocketManager,
 } from '../core/SocketManager'
-import type { Doc } from '../core/types'
+import type { ClientDoc } from '../core/types'
 import type { FrappeResponseError } from '../core/FrappeResponseError'
 import type { DocMethods } from '../core/CoreDocHandle'
 import {
   invokeMethod,
   type ControllerMethods,
   type MethodDef,
+  type TypedFlatMethodOperation,
 } from '../core/Methods'
 import { wrapOperation } from './ReactiveOperation'
 import {
@@ -60,24 +61,27 @@ export interface DoctypeDefinition<
 }
 
 /** Options for getDoc, minus the wiring that createVueClient provides. */
-export type GetDocOptions<TDoc extends Doc> = Omit<
-  VueDocHandleOptions<TDoc>,
+export type GetDocOptions<
+  TDoc extends ClientDoc,
+  TDocMethods extends DocMethods = {},
+> = Omit<
+  VueDocHandleOptions<TDoc, TDocMethods>,
   'store' | 'requestManager' | 'doctype' | 'name'
 >
 
 /** Options for getList, minus the wiring that createVueClient provides. */
-export type GetListOptions<TDoc extends Doc> = Omit<
+export type GetListOptions<TDoc extends ClientDoc> = Omit<
   VueListHandleOptions<TDoc>,
   'store' | 'requestManager' | 'doctype' | 'socket'
 >
 
 export interface VueDoctypeInstanceBase<
-  TDoc extends Doc,
+  TDoc extends ClientDoc,
   TDocMethods extends DocMethods = {},
 > {
   getDoc(
     name: MaybeRefOrGetter<string>,
-    options?: GetDocOptions<TDoc>,
+    options?: GetDocOptions<TDoc, TDocMethods>,
   ): VueDocHandle<TDoc, TDocMethods>
   getList(options?: GetListOptions<TDoc>): VueListHandle<TDoc>
   /** Create a local-only reactive draft doc for form-based create flows. */
@@ -95,18 +99,18 @@ export interface VueDoctypeInstanceBase<
 export type VueControllerMethodHandles<
   TControllerMethods extends ControllerMethods,
 > = {
-  [K in keyof TControllerMethods]: FlatOperation<any, any>
+  [K in keyof TControllerMethods]: TypedFlatMethodOperation<TControllerMethods[K]>
 }
 
 export type VueDoctypeInstance<
-  TDoc extends Doc,
+  TDoc extends ClientDoc,
   TControllerMethods extends ControllerMethods = {},
   TDocMethods extends DocMethods = {},
 > = VueDoctypeInstanceBase<TDoc, TDocMethods> &
   VueControllerMethodHandles<TControllerMethods>
 
 export interface VueClientResult {
-  defineDoctype: <TDoc extends Doc>() => <
+  defineDoctype: <TDoc extends ClientDoc>() => <
     TControllerMethods extends ControllerMethods = {},
     TDocMethods extends DocMethods = {},
   >(
@@ -148,7 +152,7 @@ export function createClient(
     socket = createNoopSocketManager()
   }
 
-  function defineDoctype<TDoc extends Doc>() {
+  function defineDoctype<TDoc extends ClientDoc>() {
     return function <
       TControllerMethods extends ControllerMethods = {},
       TDocMethods extends DocMethods = {},
@@ -288,7 +292,7 @@ export function createClient(
 
         getDoc(
           name: MaybeRefOrGetter<string>,
-          docOptions?: GetDocOptions<TDoc>,
+          docOptions?: GetDocOptions<TDoc, TDocMethods>,
         ): VueDocHandle<TDoc, TDocMethods> {
           return createVueDocHandle<TDoc, TDocMethods>({
             store,

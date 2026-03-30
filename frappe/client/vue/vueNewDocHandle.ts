@@ -1,11 +1,11 @@
 import { reactive } from 'vue'
 import { wrapOperation } from './ReactiveOperation'
-import type { Doc } from '../core/types'
+import type { ClientDoc, Doc } from '../core/types'
 import type { DocStore } from '../core/DocStore'
 import type { RequestManager } from '../core/RequestManager'
 import type { FrappeResponseError } from '../core/FrappeResponseError'
 
-export interface VueNewDocHandleOptions<TDoc extends Doc> {
+export interface VueNewDocHandleOptions<TDoc extends ClientDoc> {
   store: DocStore
   requestManager: RequestManager
   doctype: string
@@ -14,7 +14,7 @@ export interface VueNewDocHandleOptions<TDoc extends Doc> {
   onError?: (err: FrappeResponseError) => void
 }
 
-export interface VueNewDocHandle<TDoc extends Doc> {
+export interface VueNewDocHandle<TDoc extends ClientDoc> {
   /** Mutable reactive doc — bind directly to form inputs. */
   doc: Partial<TDoc>
   insert: {
@@ -25,7 +25,7 @@ export interface VueNewDocHandle<TDoc extends Doc> {
   }
 }
 
-export function createVueNewDocHandle<TDoc extends Doc>(
+export function createVueNewDocHandle<TDoc extends ClientDoc>(
   options: VueNewDocHandleOptions<TDoc>,
 ): VueNewDocHandle<TDoc> {
   const { store, requestManager, doctype, defaults = {}, onError } = options

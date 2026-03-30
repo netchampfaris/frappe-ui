@@ -2,7 +2,12 @@ import type { Doc } from './types'
 import type { DocStore } from './DocStore'
 import type { RequestManager } from './RequestManager'
 import type { Operation } from './Operation'
-import { invokeMethod, type DocMethods, type MethodDef } from './Methods'
+import {
+  invokeMethod,
+  type DocMethods,
+  type MethodDef,
+  type TypedMethodOperation,
+} from './Methods'
 import { runOptimisticMutation } from './optimisticMutation'
 
 export type { DocMethods, MethodDef } from './Methods'
@@ -13,7 +18,7 @@ export type MappedDocMethod<TArgs extends any[], TResult = any> = Operation<
 >
 
 export type CoreDocHandleDocMethods<TMethods extends DocMethods> = {
-  [K in keyof TMethods]: Operation<any, any>
+  [K in keyof TMethods]: TypedMethodOperation<TMethods[K]>
 }
 
 export interface CoreDocHandleBase<

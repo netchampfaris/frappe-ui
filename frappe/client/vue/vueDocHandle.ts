@@ -9,22 +9,25 @@ import {
   type MaybeRefOrGetter,
 } from 'vue'
 import { tryOnScopeDispose } from '@vueuse/core'
-import type { Doc } from '../core/types'
+import type { ClientDoc, Doc } from '../core/types'
 import type { DocStore } from '../core/DocStore'
 import type { RequestManager } from '../core/RequestManager'
 import type { FrappeResponseError } from '../core/FrappeResponseError'
 import type { Operation } from '../core/Operation'
 import type { DocMethods } from '../core/CoreDocHandle'
-import { invokeMethod } from '../core/Methods'
+import { invokeMethod, type TypedFlatMethodOperation } from '../core/Methods'
 import { runOptimisticMutation } from '../core/optimisticMutation'
 import { wrapOperation, type ReactiveOperation } from './ReactiveOperation'
 
-export interface VueDocHandleOptions<TDoc extends Doc> {
+export interface VueDocHandleOptions<
+  TDoc extends ClientDoc,
+  TMethods extends DocMethods = {},
+> {
   store: DocStore
   requestManager: RequestManager
   doctype: string
   name: MaybeRefOrGetter<string>
-  docMethods?: DocMethods
+  docMethods?: TMethods
   enabled?: MaybeRefOrGetter<boolean>
   transform?: (doc: TDoc) => TDoc
   onSuccess?: (doc: TDoc) => void
@@ -45,14 +48,14 @@ export interface FlatOperation<TParams, TResult> {
 }
 
 export type VueDocMethodHandles<TMethods extends DocMethods> = {
-  [K in keyof TMethods]: FlatOperation<any, any>
+  [K in keyof TMethods]: TypedFlatMethodOperation<TMethods[K]>
 }
 
 /**
  * Public shape returned by createVueDocHandle (or GPTask.getDoc).
  * All ref/computed properties are automatically unwrapped via reactive().
  */
-export interface VueDocHandleBase<TDoc extends Doc> {
+export interface VueDocHandleBase<TDoc extends ClientDoc> {
   /** Current doc — null while loading or when not found. */
   doc: TDoc | null
   loading: boolean
@@ -66,15 +69,15 @@ export interface VueDocHandleBase<TDoc extends Doc> {
 }
 
 export type VueDocHandle<
-  TDoc extends Doc,
+  TDoc extends ClientDoc,
   TMethods extends DocMethods = {},
 > = VueDocHandleBase<TDoc> & VueDocMethodHandles<TMethods>
 
 export function createVueDocHandle<
-  TDoc extends Doc,
+  TDoc extends ClientDoc,
   TMethods extends DocMethods = {},
 >(
-  options: VueDocHandleOptions<TDoc> & { docMethods?: TMethods },
+  options: VueDocHandleOptions<TDoc, TMethods>,
 ): VueDocHandle<TDoc, TMethods> {
   const {
     store,

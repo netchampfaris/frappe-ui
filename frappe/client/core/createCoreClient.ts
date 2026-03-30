@@ -10,7 +10,12 @@ import {
 } from './SocketManager'
 import { createCoreDocHandle, type DocMethods } from './CoreDocHandle'
 import { createCoreListHandle, type GetListParams } from './CoreListHandle'
-import { invokeMethod, type ControllerMethods, type MethodDef } from './Methods'
+import {
+  invokeMethod,
+  type ControllerMethods,
+  type MethodDef,
+  type TypedMethodOperation,
+} from './Methods'
 import type { Doc } from './types'
 import type { FrappeResponseError } from './FrappeResponseError'
 import type { RequestConfig } from './types'
@@ -56,7 +61,7 @@ export interface DoctypeInstanceBase<
 export type DoctypeControllerMethodHandles<
   TControllerMethods extends ControllerMethods,
 > = {
-  [K in keyof TControllerMethods]: Operation<any, any>
+  [K in keyof TControllerMethods]: TypedMethodOperation<TControllerMethods[K]>
 }
 
 export type DoctypeInstance<
