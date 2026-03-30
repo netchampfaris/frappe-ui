@@ -74,6 +74,43 @@ describe('createVueListHandle', () => {
     scope.stop()
   })
 
+  it('ignores stale responses when filters change quickly', async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/v2/document/ToDo`, async ({ request }) => {
+        const url = new URL(request.url)
+        const filters = JSON.parse(url.searchParams.get('filters') ?? '{}')
+        const status = filters.status
+
+        if (status === 'Open') {
+          await new Promise((resolve) => setTimeout(resolve, 50))
+        }
+
+        const docs = Object.values(mockTodos)
+          .filter((todo) => !status || todo.status === status)
+          .sort((a, b) => b.modified.localeCompare(a.modified))
+
+        return HttpResponse.json({
+          data: docs,
+          has_next_page: false,
+        })
+      }),
+    )
+
+    const statusFilter = ref<string>('Open')
+    const scope = effectScope()
+    const { handle } = scope.run(() =>
+      makeList({ filters: { status: statusFilter } }),
+    )!
+
+    await flushPromises()
+    statusFilter.value = 'Closed'
+    await new Promise((resolve) => setTimeout(resolve, 80))
+
+    expect(handle.data.length).toBeGreaterThan(0)
+    expect(handle.data.every((d) => d.status === 'Closed')).toBe(true)
+    scope.stop()
+  })
+
   it('filters with a getter function — refetches when getter result changes', async () => {
     const key = ref('Open')
     const scope = effectScope()

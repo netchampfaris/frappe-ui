@@ -157,6 +157,21 @@ describe('DocStore', () => {
     })
   })
 
+  describe('subscribeAll', () => {
+    it('provides doc identity metadata for removals', () => {
+      const store = createDocStore()
+      const listener = vi.fn()
+
+      store.subscribeAll(listener)
+      store.remove('ToDo', 'todo-1')
+
+      expect(listener).toHaveBeenCalledWith(null, {
+        doctype: 'ToDo',
+        name: 'todo-1',
+      })
+    })
+  })
+
   describe('hydrate', () => {
     it('loads docs without notifying subscribers', () => {
       const store = createDocStore()

@@ -30,6 +30,12 @@ export function createRequestManager(
   // Dedup map: key → in-flight promise
   const inflight = new Map<string, Promise<any>>()
 
+  function notifyError(error: FrappeResponseError) {
+    setTimeout(() => {
+      if (!error._suppressGlobalError) onError?.(error)
+    }, 0)
+  }
+
   return {
     async fetch(requestConfig: RequestConfig) {
       // Allow onRequest hook to modify config
@@ -95,7 +101,27 @@ export function createRequestManager(
         try {
           const response = await fetch(fetchUrl, fetchOptions)
           const text = await response.text()
-          const json = text ? JSON.parse(text) : {}
+          let json: any = {}
+
+          if (text) {
+            try {
+              json = JSON.parse(text)
+            } catch {
+              const error = new FrappeResponseError({
+                title: 'Invalid Response',
+                type: 'ParseError',
+                messages: [
+                  {
+                    type: 'ParseError',
+                    message: `Failed to parse JSON response from ${method} ${url}`,
+                  },
+                ],
+                httpStatus: response.status,
+              })
+              notifyError(error)
+              throw error
+            }
+          }
 
           if (!response.ok) {
             let error: FrappeResponseError
@@ -127,9 +153,7 @@ export function createRequestManager(
             }
             // Defer so that a local onError handler in the call stack can
             // set error._suppressGlobalError = true before this fires.
-            setTimeout(() => {
-              if (!error._suppressGlobalError) onError?.(error)
-            }, 0)
+            notifyError(error)
             throw error
           }
 

@@ -148,6 +148,7 @@ export function createVueListHandle<TDoc extends Doc>(
 
   // Unsubscribe realtime list_update listener
   let unsubscribeRealtime: () => void = () => {}
+  let latestRequestId = 0
 
   // When any tracked doc changes in the store, the computed auto-re-derives
   // because `store.get()` is called inside `computed`. However DocStore is not
@@ -214,6 +215,12 @@ export function createVueListHandle<TDoc extends Doc>(
   }
 
   async function fetchPage(fetchStart: number): Promise<void> {
+    if (!(toValue(enabled) ?? true)) {
+      loading.value = false
+      return
+    }
+
+    const requestId = ++latestRequestId
     loading.value = true
     error.value = null
     try {
@@ -229,6 +236,8 @@ export function createVueListHandle<TDoc extends Doc>(
         body,
       })
 
+      if (requestId !== latestRequestId) return
+
       if (json?.data) {
         const docs: any[] = json.data
         store.setMany(docs.map((d: any) => ({ doctype, ...d })))
@@ -242,6 +251,8 @@ export function createVueListHandle<TDoc extends Doc>(
         }
       }
     } catch (e) {
+      if (requestId !== latestRequestId) return
+
       const err = e as FrappeResponseError
       if (onError) {
         err._suppressGlobalError = true
@@ -249,10 +260,12 @@ export function createVueListHandle<TDoc extends Doc>(
       }
       error.value = err
     } finally {
-      loading.value = false
-      if (!promiseSettled) {
-        promiseSettled = true
-        resolvePromise()
+      if (requestId === latestRequestId) {
+        loading.value = false
+        if (!promiseSettled) {
+          promiseSettled = true
+          resolvePromise()
+        }
       }
     }
   }
@@ -267,6 +280,8 @@ export function createVueListHandle<TDoc extends Doc>(
     const isEnabled = toValue(enabled) ?? true
 
     if (!isEnabled) {
+      latestRequestId++
+      loading.value = false
       return
     }
 
@@ -281,6 +296,9 @@ export function createVueListHandle<TDoc extends Doc>(
       }
     }
 
+    // Mark loading immediately so that a debounced triggerFetch doesn't leave
+    // a gap where data=[] and loading=false before the fetch actually starts.
+    loading.value = true
     triggerFetch()
   })
 
