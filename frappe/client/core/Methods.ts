@@ -1,5 +1,7 @@
 import type { DocStore } from './DocStore'
 import type { RequestManager } from './RequestManager'
+import type { FrappeResponseError } from './FrappeResponseError'
+import type { Operation } from './Operation'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
@@ -12,6 +14,55 @@ export interface MethodDef {
 
 export type DocMethods = Record<string, MethodDef>
 export type ControllerMethods = Record<string, MethodDef>
+
+type MethodArgsTuple<TMethod extends MethodDef> = NonNullable<
+  TMethod['args']
+> extends (...args: infer TArgs) => Record<string, any>
+  ? TArgs
+  : [params?: Record<string, any>]
+
+type MethodParam<TMethod extends MethodDef> = MethodArgsTuple<TMethod> extends []
+  ? never
+  : MethodArgsTuple<TMethod>[0]
+
+export type TypedMethodOperation<TMethod extends MethodDef, TResult = any> =
+  MethodArgsTuple<TMethod> extends []
+    ? {
+        call(): Promise<TResult>
+        callOptimistic(
+          params?: undefined,
+          updater?: (store: DocStore) => void,
+          rollback?: (store: DocStore) => void,
+        ): Promise<TResult>
+      }
+    : Operation<MethodParam<TMethod>, TResult>
+
+export type TypedFlatMethodOperation<
+  TMethod extends MethodDef,
+  TResult = any,
+> = MethodArgsTuple<TMethod> extends []
+  ? {
+      call(): Promise<TResult>
+      callOptimistic(
+        params?: undefined,
+        updater?: (store: DocStore) => void,
+        rollback?: (store: DocStore) => void,
+      ): Promise<TResult>
+      loading: boolean
+      error: FrappeResponseError | null
+      data: TResult | null
+    }
+  : {
+      call(params: MethodParam<TMethod>): Promise<TResult>
+      callOptimistic(
+        params: MethodParam<TMethod>,
+        updater?: (store: DocStore) => void,
+        rollback?: (store: DocStore) => void,
+      ): Promise<TResult>
+      loading: boolean
+      error: FrappeResponseError | null
+      data: TResult | null
+    }
 
 export async function invokeMethod(options: {
   requestManager: RequestManager

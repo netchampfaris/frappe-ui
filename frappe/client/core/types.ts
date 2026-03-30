@@ -1,4 +1,5 @@
 export type Doc = { doctype: string; name: string; [key: string]: any }
+export type ClientDoc = { name: string; [key: string]: any }
 
 export interface RequestConfig {
   url: string
