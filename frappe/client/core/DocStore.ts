@@ -18,7 +18,10 @@ export interface DocStore {
    * Used by CacheAdapter to write-behind on every mutation.
    */
   subscribeAll(
-    listener: (doc: Doc | null, meta?: { doctype: string; name: string }) => void,
+    listener: (
+      doc: Doc | null,
+      meta?: { doctype: string; name: string },
+    ) => void,
   ): () => void
 
   /**

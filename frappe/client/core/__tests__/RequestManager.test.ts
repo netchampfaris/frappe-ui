@@ -128,11 +128,13 @@ describe('RequestManager', () => {
 
     it('normalizes invalid JSON responses into FrappeResponseError', async () => {
       server.use(
-        http.get(`${BASE_URL}/api/invalid-json`, () =>
-          new HttpResponse('<html>bad gateway</html>', {
-            status: 502,
-            headers: { 'Content-Type': 'text/html' },
-          }),
+        http.get(
+          `${BASE_URL}/api/invalid-json`,
+          () =>
+            new HttpResponse('<html>bad gateway</html>', {
+              status: 502,
+              headers: { 'Content-Type': 'text/html' },
+            }),
         ),
       )
 

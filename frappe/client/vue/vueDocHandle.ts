@@ -15,6 +15,7 @@ import type { RequestManager } from '../core/RequestManager'
 import type { FrappeResponseError } from '../core/FrappeResponseError'
 import type { Operation } from '../core/Operation'
 import type { DocMethods } from '../core/CoreDocHandle'
+import { invokeMethod } from '../core/Methods'
 import { wrapOperation, type ReactiveOperation } from './ReactiveOperation'
 
 export interface VueDocHandleOptions<TDoc extends Doc> {
@@ -242,23 +243,19 @@ export function createVueDocHandle<TDoc extends Doc>(
   const mappedMethods: Record<string, ReactiveOperation<any, any>> = {}
   if (docMethods) {
     for (const [key, def] of Object.entries(docMethods)) {
-      const { method, httpMethod = 'POST', args } = def
       const coreOp: Operation<any, any> = {
         async call(params: any) {
-          const body = args ? args(params) : (params ?? {})
-          const json = await requestManager.fetch({
-            url: `/api/v2/document/${doctype}/${currentName}/method/${method}`,
-            method: httpMethod,
-            body,
+          return invokeMethod({
+            requestManager,
+            store,
+            url: `/api/v2/document/${doctype}/${currentName}/method/${def.method}`,
+            def,
+            params,
           })
-          if (json?.docs?.length) {
-            store.setMany(json.docs)
-          }
-          return json
         },
         async callOptimistic(params, updater, rollback) {
           const snapshot = snapshotDoc()
-          updater(store)
+          if (updater) updater(store)
           try {
             return await coreOp.call(params)
           } catch (e) {

@@ -28,7 +28,7 @@ Options:
 | Option | Type | Description |
 |---|---|---|
 | `baseUrl?` | `string` | Prepended to all API requests. Defaults to `''`. |
-| `realtime?` | `boolean` | Enable live `list_update` / `doc_rename` events via Socket.IO. |
+| `realtime?` | `boolean` | Enable live `list_update` events via Socket.IO. |
 | `cache?` | `CacheAdapter` | Persistence adapter for cold-start hydration (e.g. `createDefaultCacheAdapter()`). |
 | `onRequest?` | `(config: RequestConfig) => RequestConfig \| void` | Interceptor called before every request. |
 | `onResponse?` | `(response: any) => void` | Called after every successful response. |
@@ -486,22 +486,14 @@ using the Frappe socket URL convention (injected via the frappe-ui Vite plugin).
 - refetches the changed doc individually (if its name is already in the list), or
 - refetches the whole page (if the name is new, indicating a potential insertion).
 
-**`doc_rename`** — sent to the doc room when a document is renamed.
-`DocStore.remove(doctype, oldName)` is called automatically.
-
 ```ts
-// Manual per-doctype listeners (no subscription to server room required)
+// Manual per-doctype listeners
 const unsub = ToDo.onUpdate((name) => {
   console.log(`${name} was updated remotely`)
 })
 
-const unsub2 = ToDo.onRename((newName, oldName) => {
-  console.log(`${oldName} renamed to ${newName}`)
-})
-
 // Unsubscribe
 unsub()
-unsub2()
 ```
 
 ---
@@ -525,4 +517,4 @@ unsub2()
 - [x] Controller methods with `.call()`
 - [x] File upload with progress via `uploadFile`
 - [x] Vue adapter (see [vue.md](./vue.md))
-- [x] Real-time: list_update auto-refetch in getList, onUpdate/onRename hooks
+- [x] Real-time: list_update auto-refetch in getList and onUpdate hook

@@ -1,4 +1,11 @@
-import { ref, reactive, watchEffect, toValue, isRef, type MaybeRefOrGetter } from 'vue'
+import {
+  ref,
+  reactive,
+  watchEffect,
+  toValue,
+  isRef,
+  type MaybeRefOrGetter,
+} from 'vue'
 import { tryOnScopeDispose } from '@vueuse/core'
 import type { Doc } from '../core/types'
 import type { DocStore } from '../core/DocStore'
@@ -32,14 +39,8 @@ export interface VueCountHandle {
 export function createVueCountHandle(
   options: VueCountHandleOptions,
 ): VueCountHandle {
-  const {
-    requestManager,
-    doctype,
-    filters,
-    enabled,
-    onSuccess,
-    onError,
-  } = options
+  const { requestManager, doctype, filters, enabled, onSuccess, onError } =
+    options
 
   const count = ref<number | null>(null)
   const loading = ref(false)
@@ -55,7 +56,8 @@ export function createVueCountHandle(
   function buildActiveFilters(): Record<string, any> | undefined {
     if (!filters) return undefined
     if (isRef(filters) || typeof filters === 'function') {
-      const raw = toValue(filters as MaybeRefOrGetter<Record<string, any>>) ?? {}
+      const raw =
+        toValue(filters as MaybeRefOrGetter<Record<string, any>>) ?? {}
       const result: Record<string, any> = {}
       for (const [k, v] of Object.entries(raw)) {
         if (v !== undefined) result[k] = v

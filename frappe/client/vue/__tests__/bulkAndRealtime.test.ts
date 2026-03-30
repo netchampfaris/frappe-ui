@@ -121,10 +121,10 @@ describe('bulkUpdate', () => {
 })
 
 // ---------------------------------------------------------------------------
-// onUpdate / onRename
+// onUpdate
 // ---------------------------------------------------------------------------
 
-describe('onUpdate / onRename', () => {
+describe('onUpdate', () => {
   it('onUpdate fires callback when list_update contains matching doctype', () => {
     const { ToDo, socket } = makeClient()
 
@@ -193,76 +193,5 @@ describe('onUpdate / onRename', () => {
       )
 
     expect(updates).toEqual(['todo-1', 'todo-2'])
-  })
-
-  it('onRename fires callback with newName and oldName', () => {
-    const listeners = new Map<string, Array<(...args: any[]) => void>>()
-    const fakeSocket = {
-      connect() {},
-      disconnect() {},
-      on(event: string, handler: (...args: any[]) => void) {
-        const list = listeners.get(event) ?? []
-        list.push(handler)
-        listeners.set(event, list)
-        return () => {}
-      },
-      off() {},
-    }
-    vi.mocked(initFrappeSocket).mockReturnValue(fakeSocket as any)
-
-    const { defineDoctype } = createClient({
-      baseUrl: BASE_URL,
-      realtime: true,
-    })
-    const ToDo = defineDoctype<TodoDoc>()({ doctype: 'ToDo' })
-
-    const renames: Array<[string, string]> = []
-    ToDo.onRename((newName, oldName) => renames.push([newName, oldName]))
-
-    listeners
-      .get('doc_rename')
-      ?.forEach((h) =>
-        h({ doctype: 'ToDo', old: 'todo-1', new: 'todo-1-renamed' }),
-      )
-
-    expect(renames).toEqual([['todo-1-renamed', 'todo-1']])
-  })
-
-  it('onRename unsub removes handler', () => {
-    const listeners = new Map<string, Array<(...args: any[]) => void>>()
-    const fakeSocket = {
-      connect() {},
-      disconnect() {},
-      on(event: string, handler: (...args: any[]) => void) {
-        const list = listeners.get(event) ?? []
-        list.push(handler)
-        listeners.set(event, list)
-        return () => {
-          const l = listeners.get(event) ?? []
-          listeners.set(
-            event,
-            l.filter((h) => h !== handler),
-          )
-        }
-      },
-      off() {},
-    }
-    vi.mocked(initFrappeSocket).mockReturnValue(fakeSocket as any)
-
-    const { defineDoctype } = createClient({
-      baseUrl: BASE_URL,
-      realtime: true,
-    })
-    const ToDo = defineDoctype<TodoDoc>()({ doctype: 'ToDo' })
-
-    const renames: string[] = []
-    const unsub = ToDo.onRename((newName) => renames.push(newName))
-    unsub()
-
-    listeners
-      .get('doc_rename')
-      ?.forEach((h) => h({ doctype: 'ToDo', old: 'todo-1', new: 'new-name' }))
-
-    expect(renames).toEqual([])
   })
 })

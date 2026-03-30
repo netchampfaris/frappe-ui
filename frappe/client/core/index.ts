@@ -19,9 +19,10 @@ export { createNoopSocketManager, createSocketManager } from './SocketManager'
 export type { SocketManager } from './SocketManager'
 
 export type { Operation } from './Operation'
+export type { ControllerMethods, DocMethods, MethodDef } from './Methods'
 
 export { createCoreDocHandle } from './CoreDocHandle'
-export type { CoreDocHandle, DocMethods, MethodDef } from './CoreDocHandle'
+export type { CoreDocHandle } from './CoreDocHandle'
 
 export { createCoreListHandle } from './CoreListHandle'
 export type { CoreListHandle, GetListParams } from './CoreListHandle'

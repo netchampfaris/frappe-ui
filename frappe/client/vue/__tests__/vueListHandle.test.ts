@@ -8,7 +8,12 @@ import '../../core/__tests__/setup'
 import { createDocStore } from '../../core/DocStore'
 import { createRequestManager } from '../../core/RequestManager'
 import { createVueListHandle } from '../vueListHandle'
-import { BASE_URL, server, mockTodos, type TodoDoc } from '../../core/__tests__/mocks'
+import {
+  BASE_URL,
+  server,
+  mockTodos,
+  type TodoDoc,
+} from '../../core/__tests__/mocks'
 
 function flushPromises() {
   return new Promise<void>((resolve) => setTimeout(resolve, 0))
@@ -130,7 +135,9 @@ describe('createVueListHandle', () => {
     const includeStatus = ref(false)
     const scope = effectScope()
     const { handle } = scope.run(() =>
-      makeList({ filters: { status: () => (includeStatus.value ? 'Closed' : undefined) } }),
+      makeList({
+        filters: { status: () => (includeStatus.value ? 'Closed' : undefined) },
+      }),
     )!
     await handle.promise
     // When status filter is undefined, all todos are returned
@@ -327,7 +334,10 @@ describe('createVueListHandle', () => {
   it('error is set on failed fetch', async () => {
     server.use(
       http.get(`${BASE_URL}/api/v2/document/ToDo`, () =>
-        HttpResponse.json({ errors: [{ title: 'Server error', type: 'Error' }] }, { status: 500 }),
+        HttpResponse.json(
+          { errors: [{ title: 'Server error', type: 'Error' }] },
+          { status: 500 },
+        ),
       ),
     )
     const scope = effectScope()

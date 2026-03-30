@@ -26,7 +26,7 @@ export const { defineDoctype, store, socket } = createClient({
 | Option | Type | Description |
 |---|---|---|
 | `baseUrl?` | `string` | Prepended to all API requests. Defaults to `''`. |
-| `realtime?` | `boolean` | Enable live `list_update` / `doc_rename` events via Socket.IO. |
+| `realtime?` | `boolean` | Enable live `list_update` events via Socket.IO. |
 | `cache?` | `CacheAdapter` | Persistence adapter for cold-start hydration. |
 | `onRequest?` | `fn` | Interceptor called before every request. |
 | `onResponse?` | `fn` | Interceptor called after every successful response. |
@@ -183,7 +183,6 @@ interface VueDoctypeInstance<TDoc, TControllerMethods> {
   bulkDelete: FlatOperation<string[], void>
   bulkUpdate: FlatOperation<Array<{ name: string } & Partial<TDoc>>, TDoc[]>
   onUpdate(callback: (name: string) => void): () => void
-  onRename(callback: (newName: string, oldName: string) => void): () => void
   // + mapped controllerMethods as FlatOperation
 }
 ```
