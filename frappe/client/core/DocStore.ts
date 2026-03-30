@@ -2,7 +2,10 @@ import type { Doc } from './types'
 
 type Listener = (doc: Doc | null) => void
 type DoctypeListener = (name: string, doc: Doc | null) => void
-type GlobalListener = (doc: Doc | null) => void
+type GlobalListener = (
+  doc: Doc | null,
+  meta?: { doctype: string; name: string },
+) => void
 
 export interface DocStore {
   get(doctype: string, name: string): Doc | null
@@ -14,7 +17,9 @@ export interface DocStore {
    * Subscribe to every set/remove across all doctypes.
    * Used by CacheAdapter to write-behind on every mutation.
    */
-  subscribeAll(listener: GlobalListener): () => void
+  subscribeAll(
+    listener: (doc: Doc | null, meta?: { doctype: string; name: string }) => void,
+  ): () => void
 
   /**
    * Subscribe to a specific document. Listener fires synchronously on
@@ -63,7 +68,7 @@ export function createDocStore(): DocStore {
     }
 
     for (const listener of globalListeners) {
-      listener(doc)
+      listener(doc, { doctype, name })
     }
   }
 

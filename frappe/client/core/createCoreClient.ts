@@ -67,6 +67,12 @@ export function createCoreClient(
 ): CoreClientResult {
   const { baseUrl = '', realtime, onRequest, onError, onResponse } = options
 
+  if (realtime === true) {
+    throw new Error(
+      'createCoreClient requires realtime.socketIo; use createVueClient for automatic socket setup.',
+    )
+  }
+
   const store = createDocStore()
   const requestManager = createRequestManager({
     baseUrl,

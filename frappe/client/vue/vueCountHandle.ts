@@ -44,6 +44,7 @@ export function createVueCountHandle(
   const count = ref<number | null>(null)
   const loading = ref(false)
   const error = ref<FrappeResponseError | null>(null)
+  let latestRequestId = 0
 
   let resolvePromise: () => void = () => {}
   let promiseSettled = false
@@ -74,6 +75,12 @@ export function createVueCountHandle(
   }
 
   async function fetchCount(): Promise<void> {
+    if (!(toValue(enabled) ?? true)) {
+      loading.value = false
+      return
+    }
+
+    const requestId = ++latestRequestId
     loading.value = true
     error.value = null
     try {
@@ -87,11 +94,15 @@ export function createVueCountHandle(
         body,
       })
 
+      if (requestId !== latestRequestId) return
+
       if (json?.data !== undefined) {
         count.value = json.data as number
         onSuccess?.(json.data)
       }
     } catch (e) {
+      if (requestId !== latestRequestId) return
+
       const err = e as FrappeResponseError
       if (onError) {
         err._suppressGlobalError = true
@@ -99,17 +110,23 @@ export function createVueCountHandle(
       }
       error.value = err
     } finally {
-      loading.value = false
-      if (!promiseSettled) {
-        promiseSettled = true
-        resolvePromise()
+      if (requestId === latestRequestId) {
+        loading.value = false
+        if (!promiseSettled) {
+          promiseSettled = true
+          resolvePromise()
+        }
       }
     }
   }
 
   const stopWatch = watchEffect(() => {
     const isEnabled = toValue(enabled) ?? true
-    if (!isEnabled) return
+    if (!isEnabled) {
+      latestRequestId++
+      loading.value = false
+      return
+    }
 
     // Register reactivity on filter values
     if (filters) {

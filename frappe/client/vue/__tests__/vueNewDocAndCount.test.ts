@@ -2,7 +2,8 @@
  * @vitest-environment node
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { effectScope } from 'vue'
+import { effectScope, ref } from 'vue'
+import { http, HttpResponse } from 'msw'
 import '../../core/__tests__/setup'
 import { createDocStore } from '../../core/DocStore'
 import { createRequestManager } from '../../core/RequestManager'
@@ -10,6 +11,7 @@ import {
   BASE_URL,
   mockTodos,
   resetMockTodos,
+  server,
   type TodoDoc,
 } from '../../core/__tests__/mocks'
 import { createVueNewDocHandle } from '../vueNewDocHandle'
@@ -203,6 +205,48 @@ describe('createVueCountHandle', () => {
     }
     await handle.reload()
     expect(handle.data).toBe(before + 1)
+    scope.stop()
+  })
+
+  it('ignores stale count responses when filters change quickly', async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/v2/doctype/ToDo/count`, async ({ request }) => {
+        const url = new URL(request.url)
+        const filters = JSON.parse(url.searchParams.get('filters') ?? '{}')
+        const status = filters.status
+
+        if (status === 'Open') {
+          await new Promise((resolve) => setTimeout(resolve, 50))
+        }
+
+        const count = Object.values(mockTodos).filter(
+          (todo) => !status || todo.status === status,
+        ).length
+
+        return HttpResponse.json({ data: count })
+      }),
+    )
+
+    const scope = effectScope()
+    const statusRef = ref('Open')
+    const handle = scope.run(() =>
+      createVueCountHandle({
+        store: makeStore(),
+        requestManager: makeRm(),
+        doctype: 'ToDo',
+        filters: { status: () => statusRef.value },
+      }),
+    )!
+
+    await flushPromises()
+    statusRef.value = 'Closed'
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 80))
+
+    const expected = Object.values(mockTodos).filter(
+      (todo) => todo.status === 'Closed',
+    ).length
+    expect(handle.data).toBe(expected)
     scope.stop()
   })
 })

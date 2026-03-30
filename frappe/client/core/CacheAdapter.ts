@@ -96,8 +96,13 @@ export async function connectCache(
   store: DocStore,
   cache: CacheAdapter,
 ): Promise<void> {
-  store.subscribeAll((doc) => {
-    if (doc === null) return
+  store.subscribeAll((doc, meta) => {
+    if (doc === null) {
+      if (meta) {
+        cache.remove(meta.doctype, meta.name)
+      }
+      return
+    }
     cache.persist(doc)
   })
 
