@@ -273,7 +273,7 @@ describe('createVueDocHandle', () => {
     server.use(
       http.post(
         `${BASE_URL}/api/v2/document/ToDo/todo-1/method/mark_complete`,
-        () => HttpResponse.json({ docs: [] }),
+        () => HttpResponse.json({ message: { ok: true }, docs: [] }),
       ),
     )
     const scope = effectScope()
@@ -286,7 +286,11 @@ describe('createVueDocHandle', () => {
         doctype: 'ToDo',
         name: 'todo-1',
         docMethods: {
-          markComplete: { method: 'mark_complete', httpMethod: 'POST' },
+          markComplete: {
+            method: 'mark_complete',
+            httpMethod: 'POST',
+            args: () => ({}),
+          },
         },
       }),
     )!
@@ -296,7 +300,9 @@ describe('createVueDocHandle', () => {
     expect(handle.markComplete.loading).toBeDefined()
     expect(handle.markComplete.error).toBeDefined()
 
-    await handle.markComplete.call({})
+    const result = await handle.markComplete.call()
+    expect(result).toEqual({ ok: true })
+    expect(handle.markComplete.data).toEqual({ ok: true })
     expect(handle.markComplete.loading).toBe(false)
     scope.stop()
   })

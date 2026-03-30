@@ -20,7 +20,8 @@ import { runOptimisticMutation } from '../core/optimisticMutation'
 import { wrapOperation, type ReactiveOperation } from './ReactiveOperation'
 
 export interface VueDocHandleOptions<
-  TDoc extends ClientDoc,
+  TSourceDoc extends ClientDoc,
+  TDoc extends ClientDoc = TSourceDoc,
   TMethods extends DocMethods = {},
 > {
   store: DocStore
@@ -29,7 +30,7 @@ export interface VueDocHandleOptions<
   name: MaybeRefOrGetter<string>
   docMethods?: TMethods
   enabled?: MaybeRefOrGetter<boolean>
-  transform?: (doc: TDoc) => TDoc
+  transform?: (doc: TSourceDoc) => TDoc
   onSuccess?: (doc: TDoc) => void
   onError?: (err: FrappeResponseError) => void
 }
@@ -55,7 +56,10 @@ export type VueDocMethodHandles<TMethods extends DocMethods> = {
  * Public shape returned by createVueDocHandle (or GPTask.getDoc).
  * All ref/computed properties are automatically unwrapped via reactive().
  */
-export interface VueDocHandleBase<TDoc extends ClientDoc> {
+export interface VueDocHandleBase<
+  TSourceDoc extends ClientDoc,
+  TDoc extends ClientDoc = TSourceDoc,
+> {
   /** Current doc — null while loading or when not found. */
   doc: TDoc | null
   loading: boolean
@@ -64,21 +68,23 @@ export interface VueDocHandleBase<TDoc extends ClientDoc> {
   promise: Promise<void>
   reload(): Promise<void>
   dispose(): void
-  setValue: FlatOperation<Partial<TDoc>, TDoc>
+  setValue: FlatOperation<Partial<TSourceDoc>, TDoc>
   delete: FlatOperation<void, void>
 }
 
 export type VueDocHandle<
-  TDoc extends ClientDoc,
+  TSourceDoc extends ClientDoc,
+  TDoc extends ClientDoc = TSourceDoc,
   TMethods extends DocMethods = {},
-> = VueDocHandleBase<TDoc> & VueDocMethodHandles<TMethods>
+> = VueDocHandleBase<TSourceDoc, TDoc> & VueDocMethodHandles<TMethods>
 
 export function createVueDocHandle<
-  TDoc extends ClientDoc,
+  TSourceDoc extends ClientDoc,
+  TDoc extends ClientDoc = TSourceDoc,
   TMethods extends DocMethods = {},
 >(
-  options: VueDocHandleOptions<TDoc, TMethods>,
-): VueDocHandle<TDoc, TMethods> {
+  options: VueDocHandleOptions<TSourceDoc, TDoc, TMethods>,
+): VueDocHandle<TSourceDoc, TDoc, TMethods> {
   const {
     store,
     requestManager,
@@ -91,7 +97,7 @@ export function createVueDocHandle<
     onError,
   } = options
 
-  const _doc = shallowRef<TDoc | null>(null)
+  const _doc = shallowRef<TSourceDoc | null>(null)
   const loading = ref(false)
   const error = ref<FrappeResponseError | null>(null)
 
@@ -117,11 +123,11 @@ export function createVueDocHandle<
       }
       if (onSuccess) {
         // Use the freshly-stored value rather than _doc (which updates async via nextTick)
-        const fresh = store.get(doctype, n) as TDoc | null
+        const fresh = store.get(doctype, n) as TSourceDoc | null
         if (fresh) {
           const result = transform
             ? transform({ ...fresh })
-            : ({ ...fresh } as TDoc)
+            : ({ ...fresh } as unknown as TDoc)
           onSuccess(result)
         }
       }
@@ -158,14 +164,14 @@ export function createVueDocHandle<
     // Sync cached value immediately — shallow copy so mutations to the
     // store's internal object don't bleed into _doc after unsubscribe.
     const cached = store.get(doctype, n)
-    _doc.value = cached ? ({ ...cached } as TDoc) : null
+    _doc.value = cached ? ({ ...cached } as unknown as TSourceDoc) : null
 
     // Subscribe to future store updates — shallow copy + batch via nextTick
     unsubscribeDoc = store.subscribe(doctype, n, (updated) => {
       nextTick(() => {
         // Only update if name hasn't changed since subscription was created
         if (currentName === n) {
-          _doc.value = updated ? ({ ...updated } as TDoc) : null
+          _doc.value = updated ? ({ ...updated } as unknown as TSourceDoc) : null
         }
       })
     })
@@ -177,15 +183,22 @@ export function createVueDocHandle<
     if (transform && _doc.value) {
       return transform(_doc.value)
     }
-    return _doc.value
+    return _doc.value as TDoc | null
   })
+
+  function readDoc(name = currentName): TDoc | null {
+    const current = store.get(doctype, name) as TSourceDoc | null
+    if (!current) return null
+    const copy = { ...current } as unknown as TSourceDoc
+    return transform ? transform(copy) : (copy as unknown as TDoc)
+  }
 
   function snapshotDoc(): Doc | null {
     const current = store.get(doctype, currentName)
     return current ? { ...current } : null
   }
 
-  const setCoreOp: Operation<Partial<TDoc>, TDoc> = {
+  const setCoreOp: Operation<Partial<TSourceDoc>, TDoc> = {
     async call(values) {
       const json = await requestManager.fetch({
         url: `/api/v2/document/${doctype}/${currentName}`,
@@ -195,7 +208,7 @@ export function createVueDocHandle<
       if (json?.data) {
         store.set({ doctype, ...json.data })
       }
-      return store.get(doctype, currentName) as TDoc
+      return readDoc(currentName) as TDoc
     },
 
     async callOptimistic(values, updater, rollback) {
@@ -309,5 +322,5 @@ export function createVueDocHandle<
     setValue,
     delete: deleteOp,
     ...mappedMethods,
-  }) as unknown as VueDocHandle<TDoc, TMethods>
+  }) as unknown as VueDocHandle<TSourceDoc, TDoc, TMethods>
 }

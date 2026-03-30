@@ -34,7 +34,10 @@ export type FiltersOption =
   | ReactiveFilters
   | MaybeRefOrGetter<Record<string, any>>
 
-export interface VueListHandleOptions<TDoc extends ClientDoc> {
+export interface VueListHandleOptions<
+  TSourceDoc extends ClientDoc,
+  TDoc extends ClientDoc = TSourceDoc,
+> {
   store: DocStore
   requestManager: RequestManager
   doctype: string
@@ -48,7 +51,7 @@ export interface VueListHandleOptions<TDoc extends ClientDoc> {
   enabled?: MaybeRefOrGetter<boolean>
   /** Socket manager injected by createVueClient for automatic realtime row updates. */
   socket?: SocketManager
-  transform?: (doc: TDoc) => TDoc
+  transform?: (doc: TSourceDoc) => TDoc
   onSuccess?: (docs: TDoc[]) => void
   onError?: (err: FrappeResponseError) => void
 }
@@ -72,8 +75,11 @@ export interface InsertOptions {
  * Like FlatOperation but callOptimistic accepts an optional `tempDoc` placeholder
  * instead of a store updater function. Pass `options.at` to control position.
  */
-export interface InsertOperation<TDoc extends ClientDoc> {
-  call(values: Partial<TDoc>, options?: InsertOptions): Promise<TDoc>
+export interface InsertOperation<
+  TSourceDoc extends ClientDoc,
+  TDoc extends ClientDoc = TSourceDoc,
+> {
+  call(values: Partial<TSourceDoc>, options?: InsertOptions): Promise<TDoc>
   /**
    * Insert with an optional optimistic placeholder.
    *
@@ -84,7 +90,7 @@ export interface InsertOperation<TDoc extends ClientDoc> {
    * Pass `options.at` to control where in the list the item appears.
    */
   callOptimistic(
-    values: Partial<TDoc>,
+    values: Partial<TSourceDoc>,
     tempDoc?: Partial<TDoc>,
     options?: InsertOptions,
   ): Promise<TDoc>
@@ -97,7 +103,10 @@ export interface InsertOperation<TDoc extends ClientDoc> {
  * Public shape returned by createVueListHandle (or GPTask.getList).
  * All ref/computed properties are automatically unwrapped via reactive().
  */
-export interface VueListHandle<TDoc extends ClientDoc> {
+export interface VueListHandle<
+  TSourceDoc extends ClientDoc,
+  TDoc extends ClientDoc = TSourceDoc,
+> {
   /** Current page of docs — each backed by DocStore. */
   data: TDoc[]
   loading: boolean
@@ -110,14 +119,17 @@ export interface VueListHandle<TDoc extends ClientDoc> {
   dispose(): void
   next(): Promise<void>
   previous(): Promise<void>
-  setValue: FlatOperation<Partial<TDoc> & { name: string }, TDoc>
+  setValue: FlatOperation<Partial<TSourceDoc> & { name: string }, TDoc>
   delete: FlatOperation<string, void>
-  insert: InsertOperation<TDoc>
+  insert: InsertOperation<TSourceDoc, TDoc>
 }
 
-export function createVueListHandle<TDoc extends ClientDoc>(
-  options: VueListHandleOptions<TDoc>,
-): VueListHandle<TDoc> {
+export function createVueListHandle<
+  TSourceDoc extends ClientDoc,
+  TDoc extends ClientDoc = TSourceDoc,
+>(
+  options: VueListHandleOptions<TSourceDoc, TDoc>,
+): VueListHandle<TSourceDoc, TDoc> {
   const {
     store,
     requestManager,
@@ -168,11 +180,18 @@ export function createVueListHandle<TDoc extends ClientDoc>(
       .map((n) => {
         const d = store.get(doctype, n)
         if (!d) return null
-        const copy = { ...d } as TDoc
-        return transform ? transform(copy) : copy
+        const copy = { ...d } as unknown as TSourceDoc
+        return transform ? transform(copy) : (copy as unknown as TDoc)
       })
       .filter((d): d is TDoc => d !== null)
   })
+
+  function readDoc(name: string): TDoc | null {
+    const current = store.get(doctype, name) as TSourceDoc | null
+    if (!current) return null
+    const copy = { ...current } as unknown as TSourceDoc
+    return transform ? transform(copy) : (copy as unknown as TDoc)
+  }
 
   function subscribeDoctype() {
     unsubscribeDoctype()
@@ -326,11 +345,11 @@ export function createVueListHandle<TDoc extends ClientDoc>(
 
   // --- Operations ---
 
-  const setCoreOp: Operation<Partial<TDoc> & { name: string }, TDoc> = {
+  const setCoreOp: Operation<Partial<TSourceDoc> & { name: string }, TDoc> = {
     async call(values) {
       const { name: docName, ...rest } = values as {
         name: string
-      } & Partial<TDoc>
+      } & Partial<TSourceDoc>
       const json = await requestManager.fetch({
         url: `/api/v2/document/${doctype}/${docName}`,
         method: 'PATCH',
@@ -339,13 +358,13 @@ export function createVueListHandle<TDoc extends ClientDoc>(
       if (json?.data) {
         store.set({ doctype, ...json.data })
       }
-      return store.get(doctype, docName) as TDoc
+      return readDoc(docName) as TDoc
     },
 
     async callOptimistic(values, updater, rollback) {
       const { name: docName, ...rest } = values as {
         name: string
-      } & Partial<TDoc>
+      } & Partial<TSourceDoc>
       const existing = store.get(doctype, docName)
       const snapshot = existing ? ({ ...existing } as Doc) : null
       return runOptimisticMutation({
@@ -404,7 +423,7 @@ export function createVueListHandle<TDoc extends ClientDoc>(
     },
   }
 
-  const insertCoreOp: Operation<Partial<TDoc>, TDoc> = {
+  const insertCoreOp: Operation<Partial<TSourceDoc>, TDoc> = {
     async call(values) {
       const json = await requestManager.fetch({
         url: `/api/v2/document/${doctype}`,
@@ -414,7 +433,7 @@ export function createVueListHandle<TDoc extends ClientDoc>(
       if (json?.data) {
         store.set({ doctype, ...json.data })
       }
-      return store.get(doctype, json.data.name) as TDoc
+      return readDoc(json.data.name) as TDoc
     },
 
     async callOptimistic(values, updater, rollback) {
@@ -449,7 +468,7 @@ export function createVueListHandle<TDoc extends ClientDoc>(
   // Insert gets its own wrapper so callOptimistic can accept a tempDoc
   // placeholder instead of a raw store updater.
   const _insertBase = wrapOperation(insertCoreOp, { onError })
-  const insertOp: InsertOperation<TDoc> = {
+  const insertOp: InsertOperation<TSourceDoc, TDoc> = {
     loading: _insertBase.loading as unknown as boolean,
     error: _insertBase.error as unknown as FrappeResponseError | null,
     data: _insertBase.data as unknown as TDoc | null,
@@ -512,5 +531,5 @@ export function createVueListHandle<TDoc extends ClientDoc>(
     setValue,
     delete: deleteOp,
     insert: insertOp,
-  }) as unknown as VueListHandle<TDoc>
+  }) as unknown as VueListHandle<TSourceDoc, TDoc>
 }

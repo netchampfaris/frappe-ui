@@ -45,6 +45,7 @@ export {
   uploadFile,
   type UploadHandle,
   type UploadFileOptions,
+  type FileDocument,
 } from './uploadFile'
 
 export { wrapOperation, type ReactiveOperation } from './ReactiveOperation'

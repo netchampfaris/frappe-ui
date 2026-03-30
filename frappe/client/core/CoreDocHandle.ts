@@ -1,4 +1,4 @@
-import type { Doc } from './types'
+import type { ClientDoc, Doc } from './types'
 import type { DocStore } from './DocStore'
 import type { RequestManager } from './RequestManager'
 import type { Operation } from './Operation'
@@ -22,7 +22,7 @@ export type CoreDocHandleDocMethods<TMethods extends DocMethods> = {
 }
 
 export interface CoreDocHandleBase<
-  TDoc extends Doc,
+  TDoc extends ClientDoc,
 > {
   /** Current snapshot from DocStore — updated synchronously via subscription. */
   doc: TDoc | null
@@ -35,12 +35,12 @@ export interface CoreDocHandleBase<
 }
 
 export type CoreDocHandle<
-  TDoc extends Doc,
+  TDoc extends ClientDoc,
   TMethods extends DocMethods = {},
 > = CoreDocHandleBase<TDoc> & CoreDocHandleDocMethods<TMethods>
 
 export interface CoreDocHandleOptions<
-  TDoc extends Doc,
+  TDoc extends ClientDoc,
   TMethods extends DocMethods = {},
 > {
   store: DocStore
@@ -51,7 +51,7 @@ export interface CoreDocHandleOptions<
 }
 
 export function createCoreDocHandle<
-  TDoc extends Doc,
+  TDoc extends ClientDoc,
   TMethods extends DocMethods = {},
 >(
   options: CoreDocHandleOptions<TDoc, TMethods>,
