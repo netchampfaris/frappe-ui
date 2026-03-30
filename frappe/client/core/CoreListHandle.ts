@@ -2,6 +2,7 @@ import type { Doc } from './types'
 import type { DocStore } from './DocStore'
 import type { RequestManager } from './RequestManager'
 import type { Operation } from './Operation'
+import { runOptimisticMutation } from './optimisticMutation'
 
 export interface GetListParams {
   fields?: string[]
@@ -116,19 +117,19 @@ export function createCoreListHandle<TDoc extends Doc>(
       const { name } = values as { name: string }
       const existing = store.get(doctype, name)
       const snapshot = existing ? ({ ...existing } as Doc) : null
-      updater(store)
-      try {
-        return await setValue.call(values)
-      } catch (e) {
-        if (rollback) {
-          rollback(store)
-        } else if (snapshot) {
-          store.set(snapshot)
-        } else {
-          store.remove(doctype, name)
-        }
-        throw e
-      }
+      return runOptimisticMutation({
+        store,
+        run: () => setValue.call(values),
+        apply: () => updater?.(store),
+        rollback,
+        restore: () => {
+          if (snapshot) {
+            store.set(snapshot)
+          } else {
+            store.remove(doctype, name)
+          }
+        },
+      })
     },
   }
 
@@ -147,25 +148,27 @@ export function createCoreListHandle<TDoc extends Doc>(
       const existing = store.get(doctype, name)
       const snapshot = existing ? ({ ...existing } as Doc) : null
       const namesBefore = [...names]
-      updater(store)
-      names = names.filter((n) => n !== name)
-      rebuildData()
-      try {
-        await requestManager.fetch({
-          url: `/api/v2/document/${doctype}/${name}`,
-          method: 'DELETE',
-        })
-        store.remove(doctype, name)
-      } catch (e) {
-        if (rollback) {
-          rollback(store)
-        } else {
+      return runOptimisticMutation({
+        store,
+        run: async () => {
+          await requestManager.fetch({
+            url: `/api/v2/document/${doctype}/${name}`,
+            method: 'DELETE',
+          })
+          store.remove(doctype, name)
+        },
+        apply: () => {
+          updater?.(store)
+          names = names.filter((n) => n !== name)
+          rebuildData()
+        },
+        rollback,
+        restore: () => {
           if (snapshot) store.set(snapshot)
           names = namesBefore
           rebuildData()
-        }
-        throw e
-      }
+        },
+      })
     },
   }
 
@@ -186,18 +189,16 @@ export function createCoreListHandle<TDoc extends Doc>(
 
     async callOptimistic(values, updater, rollback) {
       const namesBefore = [...names]
-      updater(store)
-      try {
-        return await insertOp.call(values)
-      } catch (e) {
-        if (rollback) {
-          rollback(store)
-        } else {
+      return runOptimisticMutation({
+        store,
+        run: () => insertOp.call(values),
+        apply: () => updater?.(store),
+        rollback,
+        restore: () => {
           names = namesBefore
           rebuildData()
-        }
-        throw e
-      }
+        },
+      })
     },
   }
 

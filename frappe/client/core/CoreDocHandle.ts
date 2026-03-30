@@ -3,6 +3,7 @@ import type { DocStore } from './DocStore'
 import type { RequestManager } from './RequestManager'
 import type { Operation } from './Operation'
 import { invokeMethod, type DocMethods, type MethodDef } from './Methods'
+import { runOptimisticMutation } from './optimisticMutation'
 
 export type { DocMethods, MethodDef } from './Methods'
 
@@ -95,19 +96,19 @@ export function createCoreDocHandle<TDoc extends Doc>(
 
     async callOptimistic(values, updater, rollback) {
       const snapshot = snapshotDoc()
-      if (updater) updater(store)
-      try {
-        return await setValue.call(values)
-      } catch (e) {
-        if (rollback) {
-          rollback(store)
-        } else if (snapshot) {
-          store.set(snapshot)
-        } else {
-          store.remove(doctype, name)
-        }
-        throw e
-      }
+      return runOptimisticMutation({
+        store,
+        run: () => setValue.call(values),
+        apply: () => updater?.(store),
+        rollback,
+        restore: () => {
+          if (snapshot) {
+            store.set(snapshot)
+          } else {
+            store.remove(doctype, name)
+          }
+        },
+      })
     },
   }
 
@@ -122,17 +123,17 @@ export function createCoreDocHandle<TDoc extends Doc>(
 
     async callOptimistic(_, updater, rollback) {
       const snapshot = snapshotDoc()
-      if (updater) updater(store)
-      try {
-        await deleteOp.call()
-      } catch (e) {
-        if (rollback) {
-          rollback(store)
-        } else if (snapshot) {
-          store.set(snapshot)
-        }
-        throw e
-      }
+      return runOptimisticMutation({
+        store,
+        run: () => deleteOp.call(),
+        apply: () => updater?.(store),
+        rollback,
+        restore: () => {
+          if (snapshot) {
+            store.set(snapshot)
+          }
+        },
+      })
     },
   }
 
@@ -152,17 +153,17 @@ export function createCoreDocHandle<TDoc extends Doc>(
         },
         async callOptimistic(params, updater, rollback) {
           const snapshot = snapshotDoc()
-          if (updater) updater(store)
-          try {
-            return await mappedMethods[key].call(params)
-          } catch (e) {
-            if (rollback) {
-              rollback(store)
-            } else if (snapshot) {
-              store.set(snapshot)
-            }
-            throw e
-          }
+          return runOptimisticMutation({
+            store,
+            run: () => mappedMethods[key].call(params),
+            apply: () => updater?.(store),
+            rollback,
+            restore: () => {
+              if (snapshot) {
+                store.set(snapshot)
+              }
+            },
+          })
         },
       }
     }
