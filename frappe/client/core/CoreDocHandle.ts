@@ -16,9 +16,8 @@ export type CoreDocHandleDocMethods<TMethods extends DocMethods> = {
   [K in keyof TMethods]: Operation<any, any>
 }
 
-export interface CoreDocHandle<
+export interface CoreDocHandleBase<
   TDoc extends Doc,
-  TMethods extends DocMethods = {},
 > {
   /** Current snapshot from DocStore — updated synchronously via subscription. */
   doc: TDoc | null
@@ -30,17 +29,28 @@ export interface CoreDocHandle<
   delete: Operation<void, void>
 }
 
-export interface CoreDocHandleOptions<TDoc extends Doc> {
+export type CoreDocHandle<
+  TDoc extends Doc,
+  TMethods extends DocMethods = {},
+> = CoreDocHandleBase<TDoc> & CoreDocHandleDocMethods<TMethods>
+
+export interface CoreDocHandleOptions<
+  TDoc extends Doc,
+  TMethods extends DocMethods = {},
+> {
   store: DocStore
   requestManager: RequestManager
   doctype: string
   name: string
-  docMethods?: DocMethods
+  docMethods?: TMethods
 }
 
-export function createCoreDocHandle<TDoc extends Doc>(
-  options: CoreDocHandleOptions<TDoc>,
-): CoreDocHandle<TDoc> & Record<string, any> {
+export function createCoreDocHandle<
+  TDoc extends Doc,
+  TMethods extends DocMethods = {},
+>(
+  options: CoreDocHandleOptions<TDoc, TMethods>,
+): CoreDocHandle<TDoc, TMethods> {
   const { store, requestManager, doctype, name, docMethods } = options
 
   // Snapshot — shallow copy so mutations to the store's internal object
@@ -182,5 +192,5 @@ export function createCoreDocHandle<TDoc extends Doc>(
     setValue,
     delete: deleteOp,
     ...mappedMethods,
-  }
+  } as CoreDocHandle<TDoc, TMethods>
 }

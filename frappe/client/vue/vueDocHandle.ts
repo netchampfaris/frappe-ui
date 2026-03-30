@@ -44,11 +44,15 @@ export interface FlatOperation<TParams, TResult> {
   data: TResult | null
 }
 
+export type VueDocMethodHandles<TMethods extends DocMethods> = {
+  [K in keyof TMethods]: FlatOperation<any, any>
+}
+
 /**
  * Public shape returned by createVueDocHandle (or GPTask.getDoc).
  * All ref/computed properties are automatically unwrapped via reactive().
  */
-export interface VueDocHandle<TDoc extends Doc> {
+export interface VueDocHandleBase<TDoc extends Doc> {
   /** Current doc — null while loading or when not found. */
   doc: TDoc | null
   loading: boolean
@@ -59,12 +63,19 @@ export interface VueDocHandle<TDoc extends Doc> {
   dispose(): void
   setValue: FlatOperation<Partial<TDoc>, TDoc>
   delete: FlatOperation<void, void>
-  [key: string]: any
 }
 
-export function createVueDocHandle<TDoc extends Doc>(
-  options: VueDocHandleOptions<TDoc>,
-): VueDocHandle<TDoc> {
+export type VueDocHandle<
+  TDoc extends Doc,
+  TMethods extends DocMethods = {},
+> = VueDocHandleBase<TDoc> & VueDocMethodHandles<TMethods>
+
+export function createVueDocHandle<
+  TDoc extends Doc,
+  TMethods extends DocMethods = {},
+>(
+  options: VueDocHandleOptions<TDoc> & { docMethods?: TMethods },
+): VueDocHandle<TDoc, TMethods> {
   const {
     store,
     requestManager,
@@ -295,5 +306,5 @@ export function createVueDocHandle<TDoc extends Doc>(
     setValue,
     delete: deleteOp,
     ...mappedMethods,
-  }) as unknown as VueDocHandle<TDoc>
+  }) as unknown as VueDocHandle<TDoc, TMethods>
 }
