@@ -171,7 +171,9 @@ export function createVueDocHandle<
       nextTick(() => {
         // Only update if name hasn't changed since subscription was created
         if (currentName === n) {
-          _doc.value = updated ? ({ ...updated } as unknown as TSourceDoc) : null
+          _doc.value = updated
+            ? ({ ...updated } as unknown as TSourceDoc)
+            : null
         }
       })
     })

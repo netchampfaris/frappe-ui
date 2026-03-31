@@ -8,7 +8,12 @@ import '../../core/__tests__/setup'
 import { createDocStore } from '../../core/DocStore'
 import { createRequestManager } from '../../core/RequestManager'
 import { createVueDocHandle } from '../vueDocHandle'
-import { BASE_URL, server, mockTodos, type TodoDoc } from '../../core/__tests__/mocks'
+import {
+  BASE_URL,
+  server,
+  mockTodos,
+  type TodoDoc,
+} from '../../core/__tests__/mocks'
 
 function flushPromises() {
   return new Promise<void>((resolve) => setTimeout(resolve, 0))
@@ -136,7 +141,10 @@ describe('createVueDocHandle', () => {
     const scope = effectScope()
     const { handle } = scope.run(() =>
       makeHandle('todo-1', {
-        transform: (doc: TodoDoc) => ({ ...doc, description: doc.description.toUpperCase() }),
+        transform: (doc: TodoDoc) => ({
+          ...doc,
+          description: doc.description.toUpperCase(),
+        }),
       }),
     )!
     await handle.promise
@@ -149,7 +157,9 @@ describe('createVueDocHandle', () => {
     const scope = effectScope()
     const { handle } = scope.run(() =>
       makeHandle('todo-1', {
-        onSuccess: (doc: TodoDoc) => { successDoc = doc },
+        onSuccess: (doc: TodoDoc) => {
+          successDoc = doc
+        },
       }),
     )!
     await handle.promise
@@ -188,7 +198,10 @@ describe('createVueDocHandle', () => {
 
     server.use(
       http.patch(`${BASE_URL}/api/v2/document/ToDo/todo-1`, () =>
-        HttpResponse.json({ errors: [{ title: 'Error', type: 'ValidationError' }] }, { status: 422 }),
+        HttpResponse.json(
+          { errors: [{ title: 'Error', type: 'ValidationError' }] },
+          { status: 422 },
+        ),
       ),
     )
 
@@ -244,7 +257,10 @@ describe('createVueDocHandle', () => {
 
     handle.dispose()
 
-    store.set({ ...store.get('ToDo', 'todo-1')!, description: 'Post-dispose' } as any)
+    store.set({
+      ...store.get('ToDo', 'todo-1')!,
+      description: 'Post-dispose',
+    } as any)
     await nextTick()
     // doc should remain at last value before dispose, not the new value
     expect(handle.doc?.description).not.toBe('Post-dispose')
@@ -257,14 +273,22 @@ describe('createVueDocHandle', () => {
 
     const scope = effectScope()
     const handle = scope.run(() =>
-      createVueDocHandle<TodoDoc>({ store, requestManager: rm, doctype: 'ToDo', name: 'todo-1' }),
+      createVueDocHandle<TodoDoc>({
+        store,
+        requestManager: rm,
+        doctype: 'ToDo',
+        name: 'todo-1',
+      }),
     )!
     await handle.promise
 
     scope.stop() // triggers tryOnScopeDispose → dispose()
 
     // After scope stop, store changes should not update doc
-    store.set({ ...store.get('ToDo', 'todo-1')!, description: 'After scope stop' } as any)
+    store.set({
+      ...store.get('ToDo', 'todo-1')!,
+      description: 'After scope stop',
+    } as any)
     await nextTick()
     expect(handle.doc?.description).not.toBe('After scope stop')
   })

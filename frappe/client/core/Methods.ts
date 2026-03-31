@@ -20,22 +20,18 @@ export interface MethodDef<
 export type DocMethods = Record<string, MethodDef<any, any>>
 export type ControllerMethods = Record<string, MethodDef<any, any>>
 
-export type MethodArgsTuple<TMethod extends MethodDef<any, any>> = NonNullable<
-  TMethod['args']
-> extends (...args: infer TArgs) => Record<string, any>
-  ? TArgs
-  : [params?: Record<string, any>]
+export type MethodArgsTuple<TMethod extends MethodDef<any, any>> =
+  NonNullable<TMethod['args']> extends (
+    ...args: infer TArgs
+  ) => Record<string, any>
+    ? TArgs
+    : [params?: Record<string, any>]
 
-export type MethodParam<TMethod extends MethodDef<any, any>> = MethodArgsTuple<TMethod> extends []
-  ? never
-  : MethodArgsTuple<TMethod>[0]
+export type MethodParam<TMethod extends MethodDef<any, any>> =
+  MethodArgsTuple<TMethod> extends [] ? never : MethodArgsTuple<TMethod>[0]
 
-export type MethodResult<TMethod extends MethodDef<any, any>> = TMethod extends MethodDef<
-  any,
-  infer TResult
->
-  ? TResult
-  : any
+export type MethodResult<TMethod extends MethodDef<any, any>> =
+  TMethod extends MethodDef<any, infer TResult> ? TResult : any
 
 export type TypedMethodOperation<TMethod extends MethodDef<any, any>> =
   MethodArgsTuple<TMethod> extends []
@@ -49,33 +45,34 @@ export type TypedMethodOperation<TMethod extends MethodDef<any, any>> =
       }
     : Operation<MethodParam<TMethod>, MethodResult<TMethod>>
 
-export type TypedFlatMethodOperation<
-  TMethod extends MethodDef<any, any>,
-> = MethodArgsTuple<TMethod> extends []
-  ? {
-      call(): Promise<MethodResult<TMethod>>
-      callOptimistic(
-        params?: undefined,
-        updater?: (store: DocStore) => void,
-        rollback?: (store: DocStore) => void,
-      ): Promise<MethodResult<TMethod>>
-      loading: boolean
-      error: FrappeResponseError | null
-      data: MethodResult<TMethod> | null
-    }
-  : {
-      call(params: MethodParam<TMethod>): Promise<MethodResult<TMethod>>
-      callOptimistic(
-        params: MethodParam<TMethod>,
-        updater?: (store: DocStore) => void,
-        rollback?: (store: DocStore) => void,
-      ): Promise<MethodResult<TMethod>>
-      loading: boolean
-      error: FrappeResponseError | null
-      data: MethodResult<TMethod> | null
-    }
+export type TypedFlatMethodOperation<TMethod extends MethodDef<any, any>> =
+  MethodArgsTuple<TMethod> extends []
+    ? {
+        call(): Promise<MethodResult<TMethod>>
+        callOptimistic(
+          params?: undefined,
+          updater?: (store: DocStore) => void,
+          rollback?: (store: DocStore) => void,
+        ): Promise<MethodResult<TMethod>>
+        loading: boolean
+        error: FrappeResponseError | null
+        data: MethodResult<TMethod> | null
+      }
+    : {
+        call(params: MethodParam<TMethod>): Promise<MethodResult<TMethod>>
+        callOptimistic(
+          params: MethodParam<TMethod>,
+          updater?: (store: DocStore) => void,
+          rollback?: (store: DocStore) => void,
+        ): Promise<MethodResult<TMethod>>
+        loading: boolean
+        error: FrappeResponseError | null
+        data: MethodResult<TMethod> | null
+      }
 
-export async function invokeMethod<TMethod extends MethodDef<any, any>>(options: {
+export async function invokeMethod<
+  TMethod extends MethodDef<any, any>,
+>(options: {
   requestManager: RequestManager
   store: DocStore
   url: string
