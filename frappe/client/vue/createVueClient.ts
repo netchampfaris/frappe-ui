@@ -105,7 +105,9 @@ export interface VueDoctypeInstanceBase<
 export type VueControllerMethodHandles<
   TControllerMethods extends ControllerMethods,
 > = {
-  [K in keyof TControllerMethods]: TypedFlatMethodOperation<TControllerMethods[K]>
+  [K in keyof TControllerMethods]: TypedFlatMethodOperation<
+    TControllerMethods[K]
+  >
 }
 
 export type VueDoctypeInstance<
@@ -339,11 +341,7 @@ export function createClient(
             ...countOptions,
           })
         },
-      }) as unknown as VueDoctypeInstance<
-        TDoc,
-        TControllerMethods,
-        TDocMethods
-      >
+      }) as unknown as VueDoctypeInstance<TDoc, TControllerMethods, TDocMethods>
     }
   }
 

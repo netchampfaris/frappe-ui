@@ -21,9 +21,7 @@ export type CoreDocHandleDocMethods<TMethods extends DocMethods> = {
   [K in keyof TMethods]: TypedMethodOperation<TMethods[K]>
 }
 
-export interface CoreDocHandleBase<
-  TDoc extends ClientDoc,
-> {
+export interface CoreDocHandleBase<TDoc extends ClientDoc> {
   /** Current snapshot from DocStore — updated synchronously via subscription. */
   doc: TDoc | null
   /** Resolves when the initial fetch completes. */
