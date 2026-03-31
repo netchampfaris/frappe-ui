@@ -21,7 +21,6 @@ async function main() {
 
     // Use only the plugin options for configuration
     if (!(options && options.input)) {
-      console.log('No type generation input specified in options')
       return
     }
 

@@ -57,8 +57,8 @@ await ToDo.bulkEmail.call({ names: ['todo-1'] })
 
 ### How it's generated
 
-`TSInterfaceGenerator` is a Python class in the app (e.g.,
-`gameplan/ts_interface_generator.py`) that runs server-side via
+`TSInterfaceGenerator` is a Python class in the framework at
+`frappe/types/ts_interface_generator.py` that runs server-side via
 `bench execute`. It:
 
 1. Reads DocType metadata via `frappe.get_meta(doctype)` for field definitions
@@ -70,8 +70,8 @@ await ToDo.bulkEmail.call({ names: ['todo-1'] })
 ```bash
 # Invocation
 bench --site mysite.com execute \
-  gameplan.ts_interface_generator.execute \
-  --kwargs '{"doctype": ["GP Task", "GP Project"], "output_file": "frontend/src/doctypes.ts"}'
+  frappe.types.ts_interface_generator.run_configured_generators \
+  --kwargs '{"app_name": "gameplan"}'
 ```
 
 ### What gets generated

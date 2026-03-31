@@ -111,10 +111,13 @@ import LucideArrowRight from '~icons/lucide/arrow-right'
 Auto-generates TypeScript interfaces from Frappe DocType JSON files. Interfaces
 are regenerated only when the source DocType changes.
 
-| Option   | Description                                | Default                  |
-| -------- | ------------------------------------------ | ------------------------ |
-| `input`  | Map of `app_name` → array of doctype names | *(required)*             |
-| `output` | Output file path for generated types       | `src/types/doctypes.ts`  |
+| Option    | Description                                            | Default                 |
+| --------- | ------------------------------------------------------ | ----------------------- |
+| `input`   | Map of `app_name` → array of doctype names in JS mode  | *(required in JS mode)* |
+| `output`  | Output file path for generated types in JS mode        | `src/types/doctypes.ts` |
+| `backend` | Generator backend: `js` or `frappe`                    | `js`                    |
+| `site`    | Site name for `frappe` backend mode                    | auto-detect if unique   |
+| `app`     | App name for `frappe` backend mode                     | auto-detected from cwd  |
 
 ```javascript
 frappeui({
@@ -126,6 +129,22 @@ frappeui({
   },
 })
 ```
+
+```javascript
+frappeui({
+  frappeTypes: {
+    backend: 'frappe',
+    site: 'your-site.localhost',
+  },
+})
+```
+
+With `backend: 'frappe'`, the Vite plugin calls `bench execute`
+for `frappe.types.ts_interface_generator.run_configured_generators`, so the app's
+`typescript_interface_generator` hook becomes the source of truth for the
+doctype list, output file, and client import path. The hook also supports
+`emit_definitions = False` when you only want the TypeScript interfaces without
+the generated `defineDoctype` declarations.
 
 ### Jinja Boot Data
 
