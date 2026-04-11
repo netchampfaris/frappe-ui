@@ -43,8 +43,9 @@ export interface VueListHandleOptions<
   doctype: string
   fields?: string[]
   filters?: FiltersOption
-  orderBy?: string
-  limit?: number
+  orderBy?: MaybeRefOrGetter<string | undefined>
+  groupBy?: MaybeRefOrGetter<string | undefined>
+  limit?: MaybeRefOrGetter<number | undefined>
   start?: number
   /** Custom URL for the list endpoint. Defaults to `/api/v2/document/{doctype}`. */
   url?: string
@@ -148,8 +149,9 @@ export function createVueListHandle<
     doctype,
     fields,
     filters,
-    orderBy,
-    limit = 20,
+    orderBy: orderByOption,
+    groupBy: groupByOption,
+    limit: limitOption,
     start = 0,
     url: customUrl,
     debounce: debounceMs,
@@ -161,6 +163,11 @@ export function createVueListHandle<
   } = options
 
   const listUrl = customUrl ?? `/api/v2/document/${doctype}`
+
+  /** Resolve the current limit, defaulting to 20. */
+  function resolveLimit(): number {
+    return toValue(limitOption) ?? 20
+  }
 
   // List-local ordered names — shallowRef triggers computed update
   const names = shallowRef<string[]>([])
@@ -255,6 +262,10 @@ export function createVueListHandle<
       return
     }
 
+    const limit = resolveLimit()
+    const orderBy = toValue(orderByOption)
+    const groupBy = toValue(groupByOption)
+
     const requestId = ++latestRequestId
     loading.value = true
     error.value = null
@@ -264,6 +275,7 @@ export function createVueListHandle<
       const activeFilters = buildActiveFilters()
       if (activeFilters) body.filters = JSON.stringify(activeFilters)
       if (orderBy) body.order_by = orderBy
+      if (groupBy) body.group_by = groupBy
 
       const json = await requestManager.fetch({
         url: listUrl,
@@ -330,6 +342,11 @@ export function createVueListHandle<
         }
       }
     }
+
+    // Evaluate reactive query params to register dependencies
+    toValue(orderByOption)
+    toValue(groupByOption)
+    toValue(limitOption)
 
     // Mark loading immediately so that a debounced triggerFetch doesn't leave
     // a gap where data=[] and loading=false before the fetch actually starts.
@@ -612,8 +629,8 @@ export function createVueListHandle<
     promise,
     reload: () => fetchPage(currentStart),
     dispose,
-    next: () => fetchPage(currentStart + limit),
-    previous: () => fetchPage(Math.max(0, currentStart - limit)),
+    next: () => fetchPage(currentStart + resolveLimit()),
+    previous: () => fetchPage(Math.max(0, currentStart - resolveLimit())),
     setValue,
     delete: deleteOp,
     insert: insertOp,

@@ -267,6 +267,7 @@ Fetches a list of documents. Filter values are individually reactive.
 ```ts
 const status = ref('Open')
 const search = ref('')
+const sortOrder = ref('modified desc')
 
 const todos = ToDo.getList({
   fields: ['name', 'description', 'status', 'priority'],
@@ -275,8 +276,9 @@ const todos = ToDo.getList({
     assigned_to: 'user@example.com', // static value
     priority: () => (search.value ? undefined : 1), // getter (undefined = omit filter)
   },
-  orderBy: 'modified desc',
-  limit: 20,
+  orderBy: sortOrder, // reactive — refetches on change
+  groupBy: 'status', // static or reactive (MaybeRefOrGetter<string>)
+  limit: 20, // static or reactive (MaybeRefOrGetter<number>)
   start: 0,
   debounce: 300, // ms, debounce filter changes
 

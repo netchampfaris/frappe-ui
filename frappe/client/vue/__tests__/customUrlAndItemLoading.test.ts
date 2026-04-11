@@ -326,3 +326,151 @@ describe('isItemLoading', () => {
     scope.stop()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Reactive orderBy, limit, groupBy
+// ---------------------------------------------------------------------------
+
+describe('reactive query options', () => {
+  it('refetches when orderBy ref changes', async () => {
+    let receivedOrderBy: string[] = []
+
+    server.use(
+      http.get(`${BASE_URL}/api/v2/document/ToDo`, ({ request }) => {
+        const url = new URL(request.url)
+        receivedOrderBy.push(url.searchParams.get('order_by') ?? '')
+
+        const todos = Object.values(mockTodos).sort((a, b) =>
+          b.modified.localeCompare(a.modified),
+        )
+        return HttpResponse.json({ data: todos, has_next_page: false })
+      }),
+    )
+
+    const orderBy = ref('modified desc')
+    const scope = effectScope()
+    const { handle } = scope.run(() => makeList({ orderBy }))!
+    await handle.promise
+
+    expect(receivedOrderBy).toContain('modified desc')
+
+    orderBy.value = 'creation asc'
+    await flushPromises()
+
+    expect(receivedOrderBy).toContain('creation asc')
+    scope.stop()
+  })
+
+  it('refetches when limit ref changes', async () => {
+    let receivedLimits: string[] = []
+
+    server.use(
+      http.get(`${BASE_URL}/api/v2/document/ToDo`, ({ request }) => {
+        const url = new URL(request.url)
+        receivedLimits.push(url.searchParams.get('limit') ?? '')
+
+        const todos = Object.values(mockTodos)
+        return HttpResponse.json({ data: todos, has_next_page: false })
+      }),
+    )
+
+    const limit = ref(10)
+    const scope = effectScope()
+    const { handle } = scope.run(() => makeList({ limit }))!
+    await handle.promise
+
+    expect(receivedLimits).toContain('10')
+
+    limit.value = 50
+    await flushPromises()
+
+    expect(receivedLimits).toContain('50')
+    scope.stop()
+  })
+
+  it('refetches when groupBy ref changes', async () => {
+    let receivedGroupBy: (string | null)[] = []
+
+    server.use(
+      http.get(`${BASE_URL}/api/v2/document/ToDo`, ({ request }) => {
+        const url = new URL(request.url)
+        receivedGroupBy.push(url.searchParams.get('group_by'))
+
+        const todos = Object.values(mockTodos)
+        return HttpResponse.json({ data: todos, has_next_page: false })
+      }),
+    )
+
+    const groupBy = ref<string | undefined>(undefined)
+    const scope = effectScope()
+    const { handle } = scope.run(() => makeList({ groupBy }))!
+    await handle.promise
+
+    // Initial: no group_by sent
+    expect(receivedGroupBy[receivedGroupBy.length - 1]).toBeNull()
+
+    groupBy.value = 'status'
+    await flushPromises()
+
+    expect(receivedGroupBy).toContain('status')
+    scope.stop()
+  })
+
+  it('uses resolved limit for pagination', async () => {
+    // Seed extra todos
+    for (let i = 4; i <= 8; i++) {
+      mockTodos[`todo-${i}`] = {
+        name: `todo-${i}`,
+        description: `Todo ${i}`,
+        status: 'Open',
+        priority: i,
+        owner: 'admin@example.com',
+        modified: `2026-01-${14 + i} 10:00:00`,
+        creation: `2026-01-${14 + i} 09:00:00`,
+      }
+    }
+
+    const limit = ref(2)
+    const scope = effectScope()
+    const { handle } = scope.run(() => makeList({ limit }))!
+    await handle.promise
+
+    expect(handle.data.length).toBe(2)
+    expect(handle.hasNextPage).toBe(true)
+
+    // next() should use the current resolved limit
+    await handle.next()
+    expect(handle.data.length).toBe(2)
+    expect(handle.hasPreviousPage).toBe(true)
+    scope.stop()
+  })
+
+  it('orderBy as getter function works', async () => {
+    let receivedOrderBy: string[] = []
+
+    server.use(
+      http.get(`${BASE_URL}/api/v2/document/ToDo`, ({ request }) => {
+        const url = new URL(request.url)
+        const ob = url.searchParams.get('order_by')
+        if (ob) receivedOrderBy.push(ob)
+        const todos = Object.values(mockTodos)
+        return HttpResponse.json({ data: todos, has_next_page: false })
+      }),
+    )
+
+    const sortField = ref('modified')
+    const scope = effectScope()
+    const { handle } = scope.run(() =>
+      makeList({ orderBy: () => `${sortField.value} desc` }),
+    )!
+    await handle.promise
+
+    expect(receivedOrderBy).toContain('modified desc')
+
+    sortField.value = 'creation'
+    await flushPromises()
+
+    expect(receivedOrderBy).toContain('creation desc')
+    scope.stop()
+  })
+})
