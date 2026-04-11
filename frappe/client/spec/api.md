@@ -6,8 +6,8 @@ Public API for app developers. Built on the core store layer.
 
 ## createClient
 
-Factory that configures the core layer and returns bound utilities.
-Typically called once in the app's client setup file (e.g., `src/client.ts`).
+Factory that configures the core layer and returns bound utilities. Typically
+called once in the app's client setup file (e.g., `src/client.ts`).
 
 ```ts
 // src/client.ts
@@ -25,14 +25,14 @@ export const { defineDoctype, store, socket } = createClient({
 
 Options:
 
-| Option | Type | Description |
-|---|---|---|
-| `baseUrl?` | `string` | Prepended to all API requests. Defaults to `''`. |
-| `realtime?` | `boolean` | Enable live `list_update` events via Socket.IO. |
-| `cache?` | `CacheAdapter` | Persistence adapter for cold-start hydration (e.g. `createDefaultCacheAdapter()`). |
-| `onRequest?` | `(config: RequestConfig) => RequestConfig \| void` | Interceptor called before every request. |
-| `onResponse?` | `(response: any) => void` | Called after every successful response. |
-| `onError?` | `(error: FrappeResponseError) => void` | Global error handler. |
+| Option        | Type                                               | Description                                                                        |
+| ------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `baseUrl?`    | `string`                                           | Prepended to all API requests. Defaults to `''`.                                   |
+| `realtime?`   | `boolean`                                          | Enable live `list_update` events via Socket.IO.                                    |
+| `cache?`      | `CacheAdapter`                                     | Persistence adapter for cold-start hydration (e.g. `createDefaultCacheAdapter()`). |
+| `onRequest?`  | `(config: RequestConfig) => RequestConfig \| void` | Interceptor called before every request.                                           |
+| `onResponse?` | `(response: any) => void`                          | Called after every successful response.                                            |
+| `onError?`    | `(error: FrappeResponseError) => void`             | Global error handler.                                                              |
 
 ---
 
@@ -62,8 +62,8 @@ await ToDo.bulkEmail.call({ names: ['todo-1'] })
 `bench execute`. It:
 
 1. Reads DocType metadata via `frappe.get_meta(doctype)` for field definitions
-2. Loads the Python controller class via `get_controller(doctype)` and
-   inspects it for `@frappe.whitelist()` methods
+2. Loads the Python controller class via `get_controller(doctype)` and inspects
+   it for `@frappe.whitelist()` methods
 3. Generates a single `.ts` file containing both **type interfaces** and
    **runtime `defineDoctype` calls**
 
@@ -115,6 +115,7 @@ export const GPTask = defineDoctype<GPTaskInterface>()({
 ```
 
 **Key features of the generator:**
+
 - `migration_hash` — skips regenerating interface if DocType schema unchanged
 - `// @manual` annotations — preserves hand-edited overrides across regeneration
 - `existing_methods` parsing — preserves manually refined method definitions
@@ -123,8 +124,8 @@ export const GPTask = defineDoctype<GPTaskInterface>()({
 
 ### `@/client` module
 
-The generated file imports `defineDoctype` from `@/client` (or `~client`),
-which is the app's client setup file. This is a standard Vite alias:
+The generated file imports `defineDoctype` from `@/client` (or `~client`), which
+is the app's client setup file. This is a standard Vite alias:
 
 ```ts
 // vite.config.ts
@@ -198,12 +199,12 @@ const todo = ToDo.getDoc(() => props.id, {
 ### Return shape
 
 ```ts
-todo.doc           // Doc | null — reads from canonical DocStore
-todo.loading       // boolean — true during fetch
-todo.error         // FrappeResponseError | null
-todo.reload()      // refetch from server
-todo.dispose()     // unsubscribe; called automatically on scope cleanup
-todo.promise       // Promise<void> — resolves when first fetch completes (for await / Suspense)
+todo.doc // Doc | null — reads from canonical DocStore
+todo.loading // boolean — true during fetch
+todo.error // FrappeResponseError | null
+todo.reload() // refetch from server
+todo.dispose() // unsubscribe; called automatically on scope cleanup
+todo.promise // Promise<void> — resolves when first fetch completes (for await / Suspense)
 ```
 
 ### Standard mutations
@@ -216,17 +217,20 @@ await todo.setValue.call({ description: 'Updated' })
 await todo.setValue.callOptimistic({ status: 'Closed' })
 
 // Custom optimistic: provide explicit store updater + rollback
-await todo.setValue.callOptimistic(
-  { status: 'Closed' },
-  (store) => store.set({ ...store.get('ToDo', todo.doc.name), status: 'Closed', closedAt: Date.now() }),
+await todo.setValue.callOptimistic({ status: 'Closed' }, (store) =>
+  store.set({
+    ...store.get('ToDo', todo.doc.name),
+    status: 'Closed',
+    closedAt: Date.now(),
+  }),
 )
 
-todo.setValue.loading   // boolean
-todo.setValue.error     // FrappeResponseError | null
+todo.setValue.loading // boolean
+todo.setValue.error // FrappeResponseError | null
 
 // Delete — DELETE /api/v2/document/{doctype}/{name}
 await todo.delete.call()
-await todo.delete.callOptimistic()  // removes from store immediately
+await todo.delete.callOptimistic() // removes from store immediately
 
 todo.delete.loading
 todo.delete.error
@@ -241,7 +245,7 @@ await todo.assignTo.call({ user: 'faris@frappe.io', note: 'Urgent' })
 
 todo.assignTo.loading
 todo.assignTo.error
-todo.assignTo.data      // server response
+todo.assignTo.data // server response
 ```
 
 ### Name reactivity
@@ -267,14 +271,17 @@ const search = ref('')
 const todos = ToDo.getList({
   fields: ['name', 'description', 'status', 'priority'],
   filters: {
-    status,                                    // reactive ref
-    assigned_to: 'user@example.com',           // static value
-    priority: () => search.value ? undefined : 1, // getter (undefined = omit filter)
+    status, // reactive ref
+    assigned_to: 'user@example.com', // static value
+    priority: () => (search.value ? undefined : 1), // getter (undefined = omit filter)
   },
   orderBy: 'modified desc',
   limit: 20,
   start: 0,
-  debounce: 300,                               // ms, debounce filter changes
+  debounce: 300, // ms, debounce filter changes
+
+  // Custom URL — same params/response shape as standard list endpoint
+  url: '/api/v2/method/gameplan.api.get_discussions',
 
   // Don't fetch until ready
   enabled: () => !!teamId.value,
@@ -284,24 +291,33 @@ const todos = ToDo.getList({
     statusLabel: doc.status === 'Open' ? 'To Do' : 'Done',
   }),
 
-  onSuccess: (docs) => { /* side effects */ },
-  onError: (err) => { /* handle */ },
+  onSuccess: (docs) => {
+    /* side effects */
+  },
+  onError: (err) => {
+    /* handle */
+  },
 })
 ```
 
 ### Return shape
 
 ```ts
-todos.data             // Doc[] — each item backed by DocStore canonical ref
-todos.loading          // boolean
-todos.error            // FrappeResponseError | null
-todos.hasNextPage      // boolean
-todos.hasPreviousPage  // boolean
-todos.reload()         // refetch current page
-todos.next()           // fetch next page (increments start by limit)
-todos.previous()       // fetch previous page
-todos.dispose()        // unsubscribe; called automatically on scope cleanup
-todos.promise          // Promise<void>
+todos.data // Doc[] — each item backed by DocStore canonical ref
+todos.loading // boolean
+todos.error // FrappeResponseError | null
+todos.hasNextPage // boolean
+todos.hasPreviousPage // boolean
+todos.reload() // refetch current page
+todos.next() // fetch next page (increments start by limit)
+todos.previous() // fetch previous page
+todos.dispose() // unsubscribe; called automatically on scope cleanup
+todos.promise // Promise<void>
+
+// Per-item loading check
+todos.isItemLoading('todo-1') // boolean — true if any operation is in flight
+todos.isItemLoading('todo-1', 'setValue') // check specific action
+todos.isItemLoading('todo-1', 'delete')
 ```
 
 ### List mutations
@@ -313,7 +329,7 @@ await todos.setValue.callOptimistic({ name: 'todo-1', status: 'Closed' })
 
 // Delete a row — DELETE /api/v2/document/{doctype}/{name}
 await todos.delete.call('todo-1')
-await todos.delete.callOptimistic('todo-1')  // removes from list + store immediately
+await todos.delete.callOptimistic('todo-1') // removes from list + store immediately
 
 // Insert a new row — POST /api/v2/document/{doctype}
 await todos.insert.call({ description: 'New task', status: 'Open' })
@@ -325,7 +341,7 @@ await todos.insert.call({ description: 'New task' }, { at: 2 })
 // Optimistic insert — show a placeholder immediately, replace on success
 await todos.insert.callOptimistic(
   { description: 'New task' },
-  { name: 'temp', description: 'New task' },  // tempDoc shown in list during flight
+  { name: 'temp', description: 'New task' }, // tempDoc shown in list during flight
   { at: 'start' },
 )
 ```
@@ -343,6 +359,7 @@ List instance:
 ```
 
 This means:
+
 - Two lists can have different filters, fields, and transforms
 - A doc appearing in both lists is one entry in DocStore
 - Updating that doc via either list propagates to both automatically
@@ -390,7 +407,7 @@ await todo.insert.call()
 
 todo.insert.loading
 todo.insert.error
-todo.doc.name   // server-assigned name after insert
+todo.doc.name // server-assigned name after insert
 ```
 
 ---
@@ -405,11 +422,32 @@ const count = ToDo.getCount({
   enabled: () => !!props.showCount,
 })
 
-count.data      // number | null
-count.loading   // boolean
-count.error     // FrappeResponseError | null
+count.data // number | null
+count.loading // boolean
+count.error // FrappeResponseError | null
 count.reload()
 ```
+
+---
+
+## Doctype-level setValue
+
+Set values on any document without creating a `getDoc` handle first. Useful for
+quick patches in dialogs, list row actions, etc.
+
+```ts
+await ToDo.setValue.call({ name: 'todo-1', status: 'Closed' })
+
+// Optimistic — merges into DocStore immediately, reverts on error
+await ToDo.setValue.callOptimistic({ name: 'todo-1', status: 'Closed' })
+
+ToDo.setValue.loading // boolean
+ToDo.setValue.error // FrappeResponseError | null
+ToDo.setValue.data // Doc | null
+```
+
+Updates the canonical DocStore, so any `getDoc` or `getList` handle showing
+that document will reflect the change automatically.
 
 ---
 
@@ -455,17 +493,17 @@ const upload = uploadFile({
   doctype: 'ToDo',
   name: 'todo-1',
   fieldname: 'attachment',
-  isPrivate: true,     // default: true
-  folder: 'Home/Attachments',  // default
-  baseUrl: '',         // default
+  isPrivate: true, // default: true
+  folder: 'Home/Attachments', // default
+  baseUrl: '', // default
 })
 
 upload.call()
-upload.progress    // 0–100
-upload.loading     // boolean
-upload.data        // File doc on success
-upload.error       // FrappeResponseError | null on failure
-upload.abort()     // cancel upload
+upload.progress // 0–100
+upload.loading // boolean
+upload.data // File doc on success
+upload.error // FrappeResponseError | null on failure
+upload.abort() // cancel upload
 ```
 
 ---
@@ -483,8 +521,11 @@ using the Frappe socket URL convention (injected via the frappe-ui Vite plugin).
 
 **`list_update`** — sent to the doctype room when any doc is saved. Each
 `getList` handle subscribes to this event via `socket.onDocUpdate()` and either:
-- refetches the changed doc individually (if its name is already in the list), or
-- refetches the whole page (if the name is new, indicating a potential insertion).
+
+- refetches the changed doc individually (if its name is already in the list),
+  or
+- refetches the whole page (if the name is new, indicating a potential
+  insertion).
 
 ```ts
 // Manual per-doctype listeners
@@ -500,20 +541,27 @@ unsub()
 
 ## Progress Checklist
 
-- [x] `createClient` with baseUrl, realtime, cache, onRequest, onError, onResponse
-- [x] `defineDoctype<T>()()` — curried generic factory (internal, called by generated code)
+- [x] `createClient` with baseUrl, realtime, cache, onRequest, onError,
+      onResponse
+- [x] `defineDoctype<T>()()` — curried generic factory (internal, called by
+      generated code)
 - [x] `@/client` module — app's client setup file exporting defineDoctype
 - [x] `getDoc` with enabled, transform, onSuccess/onError, promise
 - [x] `getDoc` setValue via `.call()` and `.callOptimistic()`, delete
 - [x] `getDoc` custom docMethods with `.call()`
 - [x] `getDoc` reactive name + auto-refetch
-- [x] `getList` with per-key and whole-object reactive filters, debounce, enabled
+- [x] `getList` with per-key and whole-object reactive filters, debounce,
+      enabled
+- [x] `getList` custom `url` option for non-standard list endpoints
 - [x] `getList` pagination: next, previous, hasNextPage, hasPreviousPage
-- [x] `getList` mutations: setValue, delete, insert (with callOptimistic + position)
+- [x] `getList` mutations: setValue, delete, insert (with callOptimistic +
+      position)
+- [x] `getList` `isItemLoading(name, action?)` for per-item loading state
 - [x] `getList` cross-instance sync via DocStore
 - [x] `newDoc` draft → insert flow
 - [x] `getCount` with reactive filters
 - [x] Bulk delete + bulk update
+- [x] Doctype-level `setValue` — patch any doc without `getDoc`
 - [x] Controller methods with `.call()`
 - [x] File upload with progress via `uploadFile`
 - [x] Vue adapter (see [vue.md](./vue.md))

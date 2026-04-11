@@ -219,5 +219,8 @@ todo.dispose()
 - [x] `nextTick` batching for rapid store updates (getDoc)
 - [x] `ReactiveOperation` wrapper with loading/error/data refs (via `wrapOperation`)
 - [x] `InsertOperation` with tempDoc optimistic placeholder and position control
+- [x] `isItemLoading(name, action?)` per-item loading tracking on getList
+- [x] `getList` custom `url` option for non-standard list endpoints
+- [x] Doctype-level `setValue` — patch any document without `getDoc`
 - [x] `cache` option wired to `connectCache` on startup
 - [x] Realtime list_update auto-refetch in getList via `socket.onDocUpdate`
