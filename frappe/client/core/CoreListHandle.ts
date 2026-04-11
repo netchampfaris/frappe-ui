@@ -8,6 +8,7 @@ export interface GetListParams {
   fields?: string[]
   filters?: Record<string, any>
   orderBy?: string
+  groupBy?: string
   limit?: number
   start?: number
   /** Custom URL for the list endpoint. Defaults to `/api/v2/document/{doctype}`. */
@@ -37,6 +38,7 @@ export interface CoreListHandleOptions<TDoc extends ClientDoc> {
   fields?: string[]
   filters?: Record<string, any>
   orderBy?: string
+  groupBy?: string
   limit?: number
   start?: number
   url?: string
@@ -52,6 +54,7 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
     fields,
     filters,
     orderBy,
+    groupBy,
     limit = 20,
     start = 0,
     url: customUrl,
@@ -85,6 +88,7 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
     if (filters && Object.keys(filters).length)
       body.filters = JSON.stringify(filters)
     if (orderBy) body.order_by = orderBy
+    if (groupBy) body.group_by = groupBy
 
     const json = await requestManager.fetch({
       url: listUrl,
