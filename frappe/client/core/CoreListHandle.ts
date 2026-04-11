@@ -10,6 +10,8 @@ export interface GetListParams {
   orderBy?: string
   limit?: number
   start?: number
+  /** Custom URL for the list endpoint. Defaults to `/api/v2/document/{doctype}`. */
+  url?: string
 }
 
 export interface CoreListHandle<TDoc extends ClientDoc> {
@@ -37,6 +39,7 @@ export interface CoreListHandleOptions<TDoc extends ClientDoc> {
   orderBy?: string
   limit?: number
   start?: number
+  url?: string
 }
 
 export function createCoreListHandle<TDoc extends ClientDoc>(
@@ -51,7 +54,10 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
     orderBy,
     limit = 20,
     start = 0,
+    url: customUrl,
   } = options
+
+  const listUrl = customUrl ?? `/api/v2/document/${doctype}`
 
   // List-local ordered names array
   let names: string[] = []
@@ -81,7 +87,7 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
     if (orderBy) body.order_by = orderBy
 
     const json = await requestManager.fetch({
-      url: `/api/v2/document/${doctype}`,
+      url: listUrl,
       method: 'GET',
       body,
     })

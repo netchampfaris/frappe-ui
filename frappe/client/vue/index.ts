@@ -26,6 +26,7 @@ export {
   type InsertOperation,
   type InsertOptions,
   type InsertPosition,
+  type ListItemAction,
 } from './vueListHandle'
 
 export {

@@ -9,7 +9,7 @@ import {
   createLazySocketManager,
   type SocketManager,
 } from '../core/SocketManager'
-import type { ClientDoc } from '../core/types'
+import type { ClientDoc, Doc } from '../core/types'
 import type { FrappeResponseError } from '../core/FrappeResponseError'
 import type { DocMethods } from '../core/CoreDocHandle'
 import {
@@ -30,6 +30,7 @@ import {
   type VueListHandle,
   type VueListHandleOptions,
   type ReactiveFilters,
+  type ListItemAction,
 } from './vueListHandle'
 import { createVueNewDocHandle, type VueNewDocHandle } from './vueNewDocHandle'
 import {
@@ -94,6 +95,8 @@ export interface VueDoctypeInstanceBase<
   newDoc(defaults?: Partial<TDoc>): VueNewDocHandle<TDoc>
   /** Reactive doc count with optional filters. */
   getCount(options?: GetCountOptions): VueCountHandle
+  /** Set values on an arbitrary document without creating a getDoc handle. */
+  setValue: FlatOperation<{ name: string } & Partial<TDoc>, TDoc>
   /** Bulk delete — removes docs from server and DocStore. */
   bulkDelete: FlatOperation<string[], void>
   /** Bulk update — patches multiple docs; DocStore auto-updated. */
@@ -289,11 +292,53 @@ export function createClient(
         return socket.onDocUpdate(doctype, callback)
       }
 
+      // Doctype-level setValue — PATCH /api/v2/document/{doctype}/{name}
+      // Allows setting values on any document without creating a getDoc handle.
+      type SetValueParams = { name: string } & Record<string, any>
+      async function setValueCall(values: SetValueParams): Promise<TDoc> {
+        const { name: docName, ...rest } = values
+        const json = await requestManager.fetch({
+          url: `/api/v2/document/${doctype}/${encodeURIComponent(docName)}`,
+          method: 'PATCH',
+          body: rest,
+        })
+        if (json?.data) {
+          store.set({ doctype, ...json.data })
+        }
+        return (store.get(doctype, docName) ?? json?.data) as TDoc
+      }
+      const setValueOp = wrapOperation({
+        call: setValueCall,
+        async callOptimistic(values: SetValueParams, updater, rollback) {
+          const { name: docName, ...rest } = values
+          const existing = store.get(doctype, docName)
+          const snapshot: Doc | null = existing ? { ...existing } : null
+          if (updater) {
+            updater(store)
+          } else if (existing) {
+            store.set({ ...existing, ...rest })
+          }
+          try {
+            return await setValueCall(values)
+          } catch (e) {
+            if (rollback) {
+              rollback(store)
+            } else if (snapshot) {
+              store.set(snapshot)
+            } else {
+              store.remove(doctype, docName)
+            }
+            throw e
+          }
+        },
+      })
+
       // Wrap in reactive() so nested ReactiveOperation Refs auto-unwrap:
       // ToDo.bulkDelete.loading → boolean (not Ref<boolean>)
       return reactive({
         // Controller methods spread first so built-ins below always win
         ...mappedControllerMethods,
+        setValue: setValueOp,
         bulkDelete,
         bulkUpdate,
         onUpdate,

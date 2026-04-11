@@ -46,6 +46,8 @@ export interface VueListHandleOptions<
   orderBy?: string
   limit?: number
   start?: number
+  /** Custom URL for the list endpoint. Defaults to `/api/v2/document/{doctype}`. */
+  url?: string
   /** Debounce filter changes by this many ms before refetching. */
   debounce?: number
   enabled?: MaybeRefOrGetter<boolean>
@@ -103,6 +105,9 @@ export interface InsertOperation<
  * Public shape returned by createVueListHandle (or GPTask.getList).
  * All ref/computed properties are automatically unwrapped via reactive().
  */
+/** Action types that can be tracked per-item via `isItemLoading`. */
+export type ListItemAction = 'setValue' | 'delete'
+
 export interface VueListHandle<
   TSourceDoc extends ClientDoc,
   TDoc extends ClientDoc = TSourceDoc,
@@ -122,6 +127,13 @@ export interface VueListHandle<
   setValue: FlatOperation<Partial<TSourceDoc> & { name: string }, TDoc>
   delete: FlatOperation<string, void>
   insert: InsertOperation<TSourceDoc, TDoc>
+  /**
+   * Check whether a specific item has an in-flight operation.
+   * @param name - Document name to check.
+   * @param action - Optional action type. If omitted, returns true if *any*
+   *   action (`setValue` or `delete`) is in flight for this item.
+   */
+  isItemLoading(name: string, action?: ListItemAction): boolean
 }
 
 export function createVueListHandle<
@@ -139,6 +151,7 @@ export function createVueListHandle<
     orderBy,
     limit = 20,
     start = 0,
+    url: customUrl,
     debounce: debounceMs,
     enabled,
     socket,
@@ -146,6 +159,8 @@ export function createVueListHandle<
     onSuccess,
     onError,
   } = options
+
+  const listUrl = customUrl ?? `/api/v2/document/${doctype}`
 
   // List-local ordered names — shallowRef triggers computed update
   const names = shallowRef<string[]>([])
@@ -251,7 +266,7 @@ export function createVueListHandle<
       if (orderBy) body.order_by = orderBy
 
       const json = await requestManager.fetch({
-        url: `/api/v2/document/${doctype}`,
+        url: listUrl,
         method: 'GET',
         body,
       })
@@ -341,6 +356,67 @@ export function createVueListHandle<
         triggerFetch()
       }
     })
+  }
+
+  // --- Per-item loading tracking ---
+
+  const _itemLoadingMap = new Map<string, Set<string>>()
+  const _itemLoadingVersion = ref(0)
+
+  function addItemLoading(itemName: string, action: string) {
+    let set = _itemLoadingMap.get(itemName)
+    if (!set) {
+      set = new Set()
+      _itemLoadingMap.set(itemName, set)
+    }
+    set.add(action)
+    _itemLoadingVersion.value++
+  }
+
+  function removeItemLoading(itemName: string, action: string) {
+    const set = _itemLoadingMap.get(itemName)
+    if (set) {
+      set.delete(action)
+      if (set.size === 0) _itemLoadingMap.delete(itemName)
+    }
+    _itemLoadingVersion.value++
+  }
+
+  function withItemTracking<TParams, TResult>(
+    op: Operation<TParams, TResult>,
+    extractName: (params: TParams) => string,
+    actionType: string,
+  ): Operation<TParams, TResult> {
+    return {
+      async call(params) {
+        const n = extractName(params)
+        addItemLoading(n, actionType)
+        try {
+          return await op.call(params)
+        } finally {
+          removeItemLoading(n, actionType)
+        }
+      },
+      async callOptimistic(params, updater, rollback) {
+        const n = extractName(params)
+        addItemLoading(n, actionType)
+        try {
+          return await op.callOptimistic(params, updater, rollback)
+        } finally {
+          removeItemLoading(n, actionType)
+        }
+      },
+    }
+  }
+
+  function isItemLoading(itemName: string, action?: string): boolean {
+    // Read the version ref so Vue tracks this as a reactive dependency
+    // eslint-disable-next-line no-unused-expressions
+    _itemLoadingVersion.value
+    const set = _itemLoadingMap.get(itemName)
+    if (!set || set.size === 0) return false
+    if (!action) return true
+    return set.has(action)
   }
 
   // --- Operations ---
@@ -462,8 +538,18 @@ export function createVueListHandle<
     names.value = arr
   }
 
-  const setValue = wrapOperation(setCoreOp, { onError })
-  const deleteOp = wrapOperation(deleteCoreOp, { onError })
+  const setValue = wrapOperation(
+    withItemTracking(
+      setCoreOp,
+      (values) => (values as { name: string }).name,
+      'setValue',
+    ),
+    { onError },
+  )
+  const deleteOp = wrapOperation(
+    withItemTracking(deleteCoreOp, (docName) => docName as string, 'delete'),
+    { onError },
+  )
 
   // Insert gets its own wrapper so callOptimistic can accept a tempDoc
   // placeholder instead of a raw store updater.
@@ -531,5 +617,6 @@ export function createVueListHandle<
     setValue,
     delete: deleteOp,
     insert: insertOp,
+    isItemLoading,
   }) as unknown as VueListHandle<TSourceDoc, TDoc>
 }
