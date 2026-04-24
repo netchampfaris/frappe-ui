@@ -211,15 +211,20 @@ if (todo.setValue.error) { /* show inline error */ }
 
 ### Return values
 
-| Operation              | Resolves to                  |
-|------------------------|------------------------------|
-| `setValue.call()`         | Updated `Doc`                |
-| `delete.call()`           | `void`                       |
-| `insert.call()`           | Created `Doc` (with `name`)  |
-| `bulkDelete.call()`       | `void`                       |
-| `bulkUpdate.call()`       | `Doc[]` (updated docs)       |
-| `docMethod.call()`        | Server method return value   |
-| `controllerMethod.call()` | Server method return value   |
+| Operation                                 | Resolves to                  |
+|-------------------------------------------|------------------------------|
+| `setValue.call()`                         | Updated `Doc`                |
+| `delete.call()`                           | `void`                       |
+| `insert.call(values, { at? })`            | Created `Doc` (with `name`)  |
+| `bulkDelete.call()`                       | `void`                       |
+| `bulkUpdate.call()`                       | `Doc[]` (updated docs)       |
+| `docMethod.call()`                        | Server method return value   |
+| `controllerMethod.call()`                 | Server method return value   |
+
+`insert` uses the specialised `InsertOperation` shape — `call` and
+`callOptimistic` accept an extra `options.at: 'start' | 'end' | number` arg
+(default `'start'`) so the new doc lands at the requested position without a
+"prepend then move" step.
 
 ---
 

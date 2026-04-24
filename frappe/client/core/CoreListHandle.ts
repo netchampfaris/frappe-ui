@@ -1,7 +1,12 @@
 import type { ClientDoc, Doc } from './types'
 import type { DocStore } from './DocStore'
 import type { RequestManager } from './RequestManager'
-import type { Operation } from './Operation'
+import type {
+  InsertOperation,
+  InsertOptions,
+  InsertPosition,
+  Operation,
+} from './Operation'
 import { runOptimisticMutation } from './optimisticMutation'
 
 export interface GetListParams {
@@ -28,7 +33,7 @@ export interface CoreListHandle<TDoc extends ClientDoc> {
   hasPreviousPage: boolean
   setValue: Operation<Partial<TDoc> & { name: string }, TDoc>
   delete: Operation<string, void>
-  insert: Operation<Partial<TDoc>, TDoc>
+  insert: InsertOperation<Partial<TDoc>, TDoc>
 }
 
 export interface CoreListHandleOptions<TDoc extends ClientDoc> {
@@ -182,8 +187,19 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
     },
   }
 
-  const insertOp: Operation<Partial<TDoc>, TDoc> = {
-    async call(values) {
+  function insertNameAt(name: string, at: InsertPosition) {
+    if (at === 'start') {
+      names = [name, ...names]
+    } else if (at === 'end') {
+      names = [...names, name]
+    } else {
+      const idx = Math.max(0, Math.min(at, names.length))
+      names = [...names.slice(0, idx), name, ...names.slice(idx)]
+    }
+  }
+
+  const insertOp: InsertOperation<Partial<TDoc>, TDoc> = {
+    async call(values, options) {
       const json = await requestManager.fetch({
         url: `/api/v2/document/${doctype}`,
         method: 'POST',
@@ -191,17 +207,17 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
       })
       if (json?.data) {
         store.set({ doctype, ...json.data })
-        names = [json.data.name, ...names]
+        insertNameAt(json.data.name, options?.at ?? 'start')
         rebuildData()
       }
       return store.get(doctype, json.data.name) as TDoc
     },
 
-    async callOptimistic(values, updater, rollback) {
+    async callOptimistic(values, updater, rollback, options) {
       const namesBefore = [...names]
       return runOptimisticMutation({
         store,
-        run: () => insertOp.call(values),
+        run: () => insertOp.call(values, options),
         apply: () => updater?.(store),
         rollback,
         restore: () => {

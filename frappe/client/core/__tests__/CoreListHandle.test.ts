@@ -129,6 +129,30 @@ describe('CoreListHandle', () => {
     expect(handle.data[0]?.description).toBe('Brand new todo')
   })
 
+  it('insert.call respects { at: "end" } to append', async () => {
+    const { handle } = makeList()
+    await handle.promise
+
+    const newDoc = await handle.insert.call(
+      { description: 'Tail', status: 'Open' } as any,
+      { at: 'end' },
+    )
+
+    expect(handle.data[handle.data.length - 1]?.name).toBe(newDoc.name)
+  })
+
+  it('insert.call respects { at: <number> } to splice at index', async () => {
+    const { handle } = makeList()
+    await handle.promise
+
+    const newDoc = await handle.insert.call(
+      { description: 'Middle', status: 'Open' } as any,
+      { at: 1 },
+    )
+
+    expect(handle.data[1]?.name).toBe(newDoc.name)
+  })
+
   describe('pagination', () => {
     it('hasNextPage is false when all docs fit in one page', async () => {
       const { handle } = makeList({ limit: 50 } as any)

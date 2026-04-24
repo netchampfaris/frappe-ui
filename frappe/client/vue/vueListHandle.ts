@@ -13,10 +13,16 @@ import type { ClientDoc, Doc } from '../core/types'
 import type { DocStore } from '../core/DocStore'
 import type { RequestManager } from '../core/RequestManager'
 import type { FrappeResponseError } from '../core/FrappeResponseError'
-import type { Operation } from '../core/Operation'
+import type {
+  InsertOptions,
+  InsertPosition,
+  Operation,
+} from '../core/Operation'
 import type { SocketManager } from '../core/SocketManager'
 import { runOptimisticMutation } from '../core/optimisticMutation'
 import { wrapOperation, type ReactiveOperation } from './ReactiveOperation'
+
+let optimisticCounter = 0
 
 /**
  * Filter values can be static values, refs, computed refs, or getter functions.
@@ -61,18 +67,9 @@ export interface VueListHandleOptions<
 
 import type { FlatOperation } from './vueDocHandle'
 
-/**
- * Controls where a newly inserted doc appears in the list.
- * - `'start'` — prepend (default)
- * - `'end'`   — append
- * - `number`  — zero-based index (clamped to list bounds)
- */
-export type InsertPosition = 'start' | 'end' | number
-
-export interface InsertOptions {
-  /** Where in the current list to place the new item. Defaults to `'start'`. */
-  at?: InsertPosition
-}
+// Re-export the shared core types so consumers can import everything
+// list-related from the Vue entry point.
+export type { InsertOptions, InsertPosition } from '../core/Operation'
 
 /**
  * Like FlatOperation but callOptimistic accepts an optional `tempDoc` placeholder
@@ -589,7 +586,7 @@ export function createVueListHandle<
         return doc
       }
 
-      const tempName = `__optimistic_${Date.now()}`
+      const tempName = `__optimistic_${++optimisticCounter}`
       store.set({ doctype, name: tempName, ...tempDoc } as any)
       insertNameAt(tempName, at)
 

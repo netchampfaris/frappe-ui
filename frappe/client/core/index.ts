@@ -18,7 +18,12 @@ export type { CacheAdapter } from './CacheAdapter'
 export { createNoopSocketManager, createSocketManager } from './SocketManager'
 export type { SocketManager } from './SocketManager'
 
-export type { Operation } from './Operation'
+export type {
+  Operation,
+  InsertOperation,
+  InsertOptions,
+  InsertPosition,
+} from './Operation'
 export type { ControllerMethods, DocMethods, MethodDef } from './Methods'
 
 export { createCoreDocHandle } from './CoreDocHandle'

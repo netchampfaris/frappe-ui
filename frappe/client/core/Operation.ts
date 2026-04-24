@@ -18,3 +18,25 @@ export interface Operation<TParams, TResult> {
     rollback?: (store: DocStore) => void,
   ): Promise<TResult>
 }
+
+export type InsertPosition = 'start' | 'end' | number
+
+export interface InsertOptions {
+  /** Where to place the new doc in the list. Defaults to `'start'`. */
+  at?: InsertPosition
+}
+
+/**
+ * Specialized operation for list inserts. Adds an optional `options` arg with
+ * an `at` position so the doc can be placed at the start, end, or a specific
+ * index without a separate "prepend then move" step.
+ */
+export interface InsertOperation<TParams, TResult> {
+  call(params: TParams, options?: InsertOptions): Promise<TResult>
+  callOptimistic(
+    params: TParams,
+    updater?: (store: DocStore) => void,
+    rollback?: (store: DocStore) => void,
+    options?: InsertOptions,
+  ): Promise<TResult>
+}
