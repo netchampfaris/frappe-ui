@@ -8,9 +8,20 @@ import type {
   Operation,
 } from './Operation'
 import { runOptimisticMutation } from './optimisticMutation'
+import { docCollectionUrl, docResourceUrl } from './urls'
+
+/**
+ * A field selector for list fetches. Either:
+ * - a flat field name (`'title'`, `'creation'`, `'owner'`)
+ * - a child-table selector (`{ reactions: ['name', 'user', 'emoji'] }`)
+ *
+ * Child-table selectors are JSON-encoded and forwarded to the Frappe backend,
+ * which expands them into nested table reads on the response.
+ */
+export type ListFieldSpec = string | Record<string, string[]>
 
 export interface GetListParams {
-  fields?: string[]
+  fields?: ListFieldSpec[]
   filters?: Record<string, any>
   orderBy?: string
   groupBy?: string
@@ -40,7 +51,7 @@ export interface CoreListHandleOptions<TDoc extends ClientDoc> {
   store: DocStore
   requestManager: RequestManager
   doctype: string
-  fields?: string[]
+  fields?: ListFieldSpec[]
   filters?: Record<string, any>
   orderBy?: string
   groupBy?: string
@@ -65,7 +76,7 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
     url: customUrl,
   } = options
 
-  const listUrl = customUrl ?? `/api/v2/document/${doctype}`
+  const listUrl = customUrl ?? docCollectionUrl(doctype)
 
   // List-local ordered names array
   let names: string[] = []
@@ -118,7 +129,7 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
     async call(values) {
       const { name, ...rest } = values as { name: string } & Partial<TDoc>
       const json = await requestManager.fetch({
-        url: `/api/v2/document/${doctype}/${name}`,
+        url: docResourceUrl(doctype, name),
         method: 'PATCH',
         body: rest as Record<string, any>,
       })
@@ -151,7 +162,7 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
   const deleteOp: Operation<string, void> = {
     async call(name) {
       await requestManager.fetch({
-        url: `/api/v2/document/${doctype}/${name}`,
+        url: docResourceUrl(doctype, name),
         method: 'DELETE',
       })
       store.remove(doctype, name)
@@ -167,7 +178,7 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
         store,
         run: async () => {
           await requestManager.fetch({
-            url: `/api/v2/document/${doctype}/${name}`,
+            url: docResourceUrl(doctype, name),
             method: 'DELETE',
           })
           store.remove(doctype, name)
@@ -201,7 +212,7 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
   const insertOp: InsertOperation<Partial<TDoc>, TDoc> = {
     async call(values, options) {
       const json = await requestManager.fetch({
-        url: `/api/v2/document/${doctype}`,
+        url: docCollectionUrl(doctype),
         method: 'POST',
         body: values as Record<string, any>,
       })

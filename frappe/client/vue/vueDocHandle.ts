@@ -17,6 +17,8 @@ import type { Operation } from '../core/Operation'
 import type { DocMethods } from '../core/CoreDocHandle'
 import { invokeMethod, type TypedFlatMethodOperation } from '../core/Methods'
 import { runOptimisticMutation } from '../core/optimisticMutation'
+import type { SocketManager } from '../core/SocketManager'
+import { docMethodUrl, docResourceUrl } from '../core/urls'
 import { wrapOperation, type ReactiveOperation } from './ReactiveOperation'
 
 export interface VueDocHandleOptions<
@@ -33,6 +35,12 @@ export interface VueDocHandleOptions<
   transform?: (doc: TSourceDoc) => TDoc
   onSuccess?: (doc: TDoc) => void
   onError?: (err: FrappeResponseError) => void
+  /**
+   * When provided, the handle subscribes to the doctype room and refetches
+   * the doc whenever the server emits `list_update` for this name. Wired
+   * automatically by `createClient` when `realtime: true`.
+   */
+  socket?: SocketManager
 }
 
 /** Flat shape of a reactive operation after reactive() unwrapping. */
@@ -95,6 +103,7 @@ export function createVueDocHandle<
     transform,
     onSuccess,
     onError,
+    socket,
   } = options
 
   const _doc = shallowRef<TSourceDoc | null>(null)
@@ -105,6 +114,7 @@ export function createVueDocHandle<
   let currentName = ''
 
   let unsubscribeDoc: () => void = () => {}
+  let unsubscribeRealtime: () => void = () => {}
 
   let resolvePromise: () => void = () => {}
   let promiseSettled = false
@@ -152,6 +162,7 @@ export function createVueDocHandle<
     const isEnabled = toValue(enabled) ?? true
 
     unsubscribeDoc()
+    unsubscribeRealtime()
 
     if (!isEnabled || !n) {
       _doc.value = null
@@ -178,6 +189,17 @@ export function createVueDocHandle<
       })
     })
 
+    // Refetch this doc when the server emits list_update for it. Lets the
+    // handle reflect server-side mutations from doc methods (which may not
+    // return the updated doc) and from other clients.
+    if (socket) {
+      unsubscribeRealtime = socket.onDocUpdate(doctype, (updatedName) => {
+        if (updatedName === n && currentName === n) {
+          fetchDoc(n)
+        }
+      })
+    }
+
     fetchDoc(n)
   })
 
@@ -203,7 +225,7 @@ export function createVueDocHandle<
   const setCoreOp: Operation<Partial<TSourceDoc>, TDoc> = {
     async call(values) {
       const json = await requestManager.fetch({
-        url: `/api/v2/document/${doctype}/${currentName}`,
+        url: docResourceUrl(doctype, currentName),
         method: 'PATCH',
         body: values as Record<string, any>,
       })
@@ -241,7 +263,7 @@ export function createVueDocHandle<
   const deleteCoreOp: Operation<void, void> = {
     async call() {
       await requestManager.fetch({
-        url: `/api/v2/document/${doctype}/${currentName}`,
+        url: docResourceUrl(doctype, currentName),
         method: 'DELETE',
       })
       store.remove(doctype, currentName)
@@ -281,7 +303,7 @@ export function createVueDocHandle<
           return invokeMethod({
             requestManager,
             store,
-            url: `/api/v2/document/${doctype}/${currentName}/method/${def.method}`,
+            url: docMethodUrl(doctype, currentName, def.method),
             def,
             params,
           })
@@ -307,6 +329,7 @@ export function createVueDocHandle<
 
   function dispose() {
     unsubscribeDoc()
+    unsubscribeRealtime()
   }
 
   tryOnScopeDispose(dispose)

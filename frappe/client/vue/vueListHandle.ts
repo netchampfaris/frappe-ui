@@ -20,6 +20,7 @@ import type {
 } from '../core/Operation'
 import type { SocketManager } from '../core/SocketManager'
 import { runOptimisticMutation } from '../core/optimisticMutation'
+import { docCollectionUrl, docResourceUrl } from '../core/urls'
 import { wrapOperation, type ReactiveOperation } from './ReactiveOperation'
 
 let optimisticCounter = 0
@@ -159,7 +160,7 @@ export function createVueListHandle<
     onError,
   } = options
 
-  const listUrl = customUrl ?? `/api/v2/document/${doctype}`
+  const listUrl = customUrl ?? docCollectionUrl(doctype)
 
   /** Resolve the current limit, defaulting to 20. */
   function resolveLimit(): number {
@@ -441,7 +442,7 @@ export function createVueListHandle<
         name: string
       } & Partial<TSourceDoc>
       const json = await requestManager.fetch({
-        url: `/api/v2/document/${doctype}/${docName}`,
+        url: docResourceUrl(doctype, docName),
         method: 'PATCH',
         body: rest as Record<string, any>,
       })
@@ -482,7 +483,7 @@ export function createVueListHandle<
   const deleteCoreOp: Operation<string, void> = {
     async call(docName) {
       await requestManager.fetch({
-        url: `/api/v2/document/${doctype}/${docName}`,
+        url: docResourceUrl(doctype, docName),
         method: 'DELETE',
       })
       store.remove(doctype, docName)
@@ -516,7 +517,7 @@ export function createVueListHandle<
   const insertCoreOp: Operation<Partial<TSourceDoc>, TDoc> = {
     async call(values) {
       const json = await requestManager.fetch({
-        url: `/api/v2/document/${doctype}`,
+        url: docCollectionUrl(doctype),
         method: 'POST',
         body: values as Record<string, any>,
       })

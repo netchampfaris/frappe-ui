@@ -40,6 +40,7 @@ import {
 } from './vueCountHandle'
 import { initFrappeSocket } from './frappe-socket'
 import { connectCache, type CacheAdapter } from '../core/CacheAdapter'
+import { docCollectionUrl, docResourceUrl } from '../core/urls'
 
 export interface CreateVueClientOptions {
   baseUrl?: string
@@ -206,7 +207,7 @@ export function createClient(
       const bulkDelete = wrapOperation({
         async call(names: string[]) {
           await requestManager.fetch({
-            url: `/api/v2/document/${doctype}/bulk_delete`,
+            url: `${docCollectionUrl(doctype)}/bulk_delete`,
             method: 'POST',
             body: { names },
           })
@@ -241,7 +242,7 @@ export function createClient(
       type BulkUpdateRow = { name: string } & Record<string, any>
       async function bulkUpdateCall(rows: BulkUpdateRow[]): Promise<TDoc[]> {
         const json = await requestManager.fetch({
-          url: `/api/v2/document/${doctype}/bulk_update`,
+          url: `${docCollectionUrl(doctype)}/bulk_update`,
           method: 'POST',
           body: { docs: rows },
         })
@@ -298,7 +299,7 @@ export function createClient(
       async function setValueCall(values: SetValueParams): Promise<TDoc> {
         const { name: docName, ...rest } = values
         const json = await requestManager.fetch({
-          url: `/api/v2/document/${doctype}/${encodeURIComponent(docName)}`,
+          url: docResourceUrl(doctype, docName),
           method: 'PATCH',
           body: rest,
         })
@@ -353,6 +354,7 @@ export function createClient(
             doctype,
             name,
             docMethods,
+            socket,
             ...docOptions,
           })
         },

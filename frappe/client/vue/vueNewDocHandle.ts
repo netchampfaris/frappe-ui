@@ -4,6 +4,7 @@ import type { ClientDoc, Doc } from '../core/types'
 import type { DocStore } from '../core/DocStore'
 import type { RequestManager } from '../core/RequestManager'
 import type { FrappeResponseError } from '../core/FrappeResponseError'
+import { docCollectionUrl } from '../core/urls'
 
 export interface VueNewDocHandleOptions<TDoc extends ClientDoc> {
   store: DocStore
@@ -37,7 +38,7 @@ export function createVueNewDocHandle<TDoc extends ClientDoc>(
     async call(extraValues?: Partial<TDoc>) {
       const body = { ...(doc as object), ...(extraValues ?? {}) }
       const json = await requestManager.fetch({
-        url: `/api/v2/document/${doctype}`,
+        url: docCollectionUrl(doctype),
         method: 'POST',
         body: body as Record<string, any>,
       })

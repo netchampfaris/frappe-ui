@@ -173,7 +173,7 @@ export function createRequestManager(
 
     fetchDoc(doctype: string, name: string) {
       return this.fetch({
-        url: `/api/v2/document/${doctype}/${encodeURIComponent(name)}`,
+        url: `/api/v2/document/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`,
         method: 'GET',
       })
     },

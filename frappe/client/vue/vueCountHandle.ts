@@ -91,7 +91,7 @@ export function createVueCountHandle(
       if (activeFilters) body.filters = JSON.stringify(activeFilters)
 
       const json = await requestManager.fetch({
-        url: `/api/v2/doctype/${doctype}/count`,
+        url: `/api/v2/doctype/${encodeURIComponent(doctype)}/count`,
         method: 'GET',
         body,
       })

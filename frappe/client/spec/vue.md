@@ -224,3 +224,4 @@ todo.dispose()
 - [x] Doctype-level `setValue` — patch any document without `getDoc`
 - [x] `cache` option wired to `connectCache` on startup
 - [x] Realtime list_update auto-refetch in getList via `socket.onDocUpdate`
+- [x] Realtime list_update auto-refetch in getDoc — refetches the doc when its own name is updated remotely (covers doc methods that don't return the updated doc, and cross-client edits)

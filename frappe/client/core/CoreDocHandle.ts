@@ -8,6 +8,7 @@ import {
   type MethodDef,
   type TypedMethodOperation,
 } from './Methods'
+import { docMethodUrl, docResourceUrl } from './urls'
 import { runOptimisticMutation } from './optimisticMutation'
 
 export type { DocMethods, MethodDef } from './Methods'
@@ -56,6 +57,8 @@ export function createCoreDocHandle<
 ): CoreDocHandle<TDoc, TMethods> {
   const { store, requestManager, doctype, name, docMethods } = options
 
+  const docUrl = docResourceUrl(doctype, name)
+
   // Snapshot — shallow copy so mutations to the store's internal object
   // don't bleed into the handle after dispose() removes the subscription.
   function copyDoc(d: ReturnType<DocStore['get']>): TDoc | null {
@@ -75,7 +78,7 @@ export function createCoreDocHandle<
     abortController = new AbortController()
     try {
       const json = await requestManager.fetch({
-        url: `/api/v2/document/${doctype}/${name}`,
+        url: docUrl,
         method: 'GET',
         signal: abortController.signal,
       })
@@ -97,7 +100,7 @@ export function createCoreDocHandle<
   const setValue: Operation<Partial<TDoc>, TDoc> = {
     async call(values) {
       const json = await requestManager.fetch({
-        url: `/api/v2/document/${doctype}/${name}`,
+        url: docUrl,
         method: 'PATCH',
         body: values as Record<string, any>,
       })
@@ -128,7 +131,7 @@ export function createCoreDocHandle<
   const deleteOp: Operation<void, void> = {
     async call() {
       await requestManager.fetch({
-        url: `/api/v2/document/${doctype}/${name}`,
+        url: docUrl,
         method: 'DELETE',
       })
       store.remove(doctype, name)
@@ -159,7 +162,7 @@ export function createCoreDocHandle<
           return invokeMethod({
             requestManager,
             store,
-            url: `/api/v2/document/${doctype}/${name}/method/${def.method}`,
+            url: docMethodUrl(doctype, name, def.method),
             def,
             params,
           })
