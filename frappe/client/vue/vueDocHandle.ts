@@ -3,7 +3,7 @@ import {
   reactive,
   shallowRef,
   computed,
-  watchEffect,
+  watch,
   nextTick,
   toValue,
   type MaybeRefOrGetter,
@@ -157,51 +157,61 @@ export function createVueDocHandle<
     }
   }
 
-  watchEffect(() => {
-    const n = toValue(name)
-    const isEnabled = toValue(enabled) ?? true
+  // Resolve reactive inputs to plain values so the watcher only fires when
+  // the resolved name/enabled actually change. Using watchEffect here would
+  // re-run whenever any reactive dep accessed by the getters changes — e.g.
+  // a parent computed that returns a new object on every store update —
+  // which would cause an infinite refetch loop (fetchDoc → store.set →
+  // parent recompute → new prop reference → watchEffect re-fires → fetchDoc).
+  const resolvedName = computed(() => toValue(name))
+  const resolvedEnabled = computed(() => toValue(enabled) ?? true)
 
-    unsubscribeDoc()
-    unsubscribeRealtime()
+  watch(
+    [resolvedName, resolvedEnabled],
+    ([n, isEnabled]) => {
+      unsubscribeDoc()
+      unsubscribeRealtime()
 
-    if (!isEnabled || !n) {
-      _doc.value = null
-      currentName = n || ''
-      return
-    }
+      if (!isEnabled || !n) {
+        _doc.value = null
+        currentName = n || ''
+        return
+      }
 
-    currentName = n
+      currentName = n
 
-    // Sync cached value immediately — shallow copy so mutations to the
-    // store's internal object don't bleed into _doc after unsubscribe.
-    const cached = store.get(doctype, n)
-    _doc.value = cached ? ({ ...cached } as unknown as TSourceDoc) : null
+      // Sync cached value immediately — shallow copy so mutations to the
+      // store's internal object don't bleed into _doc after unsubscribe.
+      const cached = store.get(doctype, n)
+      _doc.value = cached ? ({ ...cached } as unknown as TSourceDoc) : null
 
-    // Subscribe to future store updates — shallow copy + batch via nextTick
-    unsubscribeDoc = store.subscribe(doctype, n, (updated) => {
-      nextTick(() => {
-        // Only update if name hasn't changed since subscription was created
-        if (currentName === n) {
-          _doc.value = updated
-            ? ({ ...updated } as unknown as TSourceDoc)
-            : null
-        }
+      // Subscribe to future store updates — shallow copy + batch via nextTick
+      unsubscribeDoc = store.subscribe(doctype, n, (updated) => {
+        nextTick(() => {
+          // Only update if name hasn't changed since subscription was created
+          if (currentName === n) {
+            _doc.value = updated
+              ? ({ ...updated } as unknown as TSourceDoc)
+              : null
+          }
+        })
       })
-    })
 
-    // Refetch this doc when the server emits list_update for it. Lets the
-    // handle reflect server-side mutations from doc methods (which may not
-    // return the updated doc) and from other clients.
-    if (socket) {
-      unsubscribeRealtime = socket.onDocUpdate(doctype, (updatedName) => {
-        if (updatedName === n && currentName === n) {
-          fetchDoc(n)
-        }
-      })
-    }
+      // Refetch this doc when the server emits list_update for it. Lets the
+      // handle reflect server-side mutations from doc methods (which may not
+      // return the updated doc) and from other clients.
+      if (socket) {
+        unsubscribeRealtime = socket.onDocUpdate(doctype, (updatedName) => {
+          if (updatedName === n && currentName === n) {
+            fetchDoc(n)
+          }
+        })
+      }
 
-    fetchDoc(n)
-  })
+      fetchDoc(n)
+    },
+    { immediate: true },
+  )
 
   const doc = computed<TDoc | null>(() => {
     if (transform && _doc.value) {
