@@ -115,7 +115,10 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
     if (json?.data) {
       const docs: any[] = json.data
       store.setMany(docs.map((d: any) => ({ doctype, ...d })))
-      names = docs.map((d: any) => d.name)
+      // Names are kept as strings so they match DocStore keys and socket
+      // payload `name` fields (Frappe autoincrement names serialise as
+      // numbers, which would otherwise break `.includes` checks).
+      names = docs.map((d: any) => String(d.name))
       rebuildData()
       hasNextPage = json.has_next_page ?? false
       hasPreviousPage = fetchStart > 0
@@ -218,10 +221,12 @@ export function createCoreListHandle<TDoc extends ClientDoc>(
       })
       if (json?.data) {
         store.set({ doctype, ...json.data })
-        insertNameAt(json.data.name, options?.at ?? 'start')
+        const insertedName = String(json.data.name)
+        insertNameAt(insertedName, options?.at ?? 'start')
         rebuildData()
+        return store.get(doctype, insertedName) as TDoc
       }
-      return store.get(doctype, json.data.name) as TDoc
+      return store.get(doctype, String(json.data.name)) as TDoc
     },
 
     async callOptimistic(values, updater, rollback, options) {

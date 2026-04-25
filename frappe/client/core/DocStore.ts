@@ -75,12 +75,23 @@ export function createDocStore(): DocStore {
     }
   }
 
+  // Frappe autoincrement doctypes serialise the doc name as a JS number.
+  // Coerce to string at the store boundary so every consumer (socket
+  // payloads, list `names` arrays, route param comparisons, store keys)
+  // sees the same shape.
+  function normaliseDoc(doc: Doc): Doc {
+    return doc.name === undefined || typeof doc.name === 'string'
+      ? doc
+      : { ...doc, name: String(doc.name) }
+  }
+
   return {
     get(doctype, name) {
       return docs.get(docKey(doctype, name)) ?? null
     },
 
-    set(doc) {
+    set(rawDoc) {
+      const doc = normaliseDoc(rawDoc)
       const key = docKey(doc.doctype, doc.name)
       const existing = docs.get(key)
       if (existing) {
@@ -91,7 +102,8 @@ export function createDocStore(): DocStore {
       notify(doc.doctype, doc.name, docs.get(key)!)
     },
 
-    setMany(docList) {
+    setMany(rawList) {
+      const docList = rawList.map(normaliseDoc)
       // Merge all first, then notify once per doc
       for (const doc of docList) {
         const key = docKey(doc.doctype, doc.name)
@@ -143,8 +155,9 @@ export function createDocStore(): DocStore {
       return () => globalListeners.delete(listener)
     },
 
-    hydrate(docList) {
-      for (const doc of docList) {
+    hydrate(rawList) {
+      for (const raw of rawList) {
+        const doc = normaliseDoc(raw)
         docs.set(docKey(doc.doctype, doc.name), { ...doc })
       }
       // No notifications — hydrate is for cold-start only

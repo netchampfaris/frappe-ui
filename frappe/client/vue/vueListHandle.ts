@@ -286,7 +286,10 @@ export function createVueListHandle<
       if (json?.data) {
         const docs: any[] = json.data
         store.setMany(docs.map((d: any) => ({ doctype, ...d })))
-        names.value = docs.map((d: any) => d.name)
+        // Read names back from the store — DocStore normalises name to a
+        // string so this stays consistent with socket payloads (which are
+        // always strings) and DocStore lookup keys.
+        names.value = docs.map((d: any) => String(d.name))
         hasNextPage.value = json.has_next_page ?? false
         hasPreviousPage.value = fetchStart > 0
         currentStart = fetchStart

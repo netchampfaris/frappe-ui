@@ -61,6 +61,17 @@ describe('DocStore', () => {
       expect(store.get('ToDo', 'a')?.priority).toBe(5)
       expect(store.get('ToDo', 'a')?.status).toBe('Closed')
     })
+
+    it('coerces numeric names to strings (Frappe autoincrement)', () => {
+      const store = createDocStore()
+      // Server returned a number — common for autoincrement doctypes.
+      store.set({ doctype: 'Poll', name: 26 as unknown as string, title: 'X' })
+      // The stored doc has a string name.
+      expect(store.get('Poll', '26')?.name).toBe('26')
+      // And lookup with the original number-shaped key still works because
+      // the docKey template-literal stringifies on both sides.
+      expect(store.get('Poll', 26 as unknown as string)?.title).toBe('X')
+    })
   })
 
   describe('remove', () => {
