@@ -4,10 +4,12 @@
 // `dismissable: false` so the user must pick an action, and a loading
 // flag wired to the in-flight delete.
 import { ref } from 'vue'
-import { Button, Dialog } from 'frappe-ui'
+import { Button, Dialog, Dropdown, MultiSelect } from 'frappe-ui'
 
 const open = ref(false)
 const deleting = ref(false)
+
+const test = ref(false)
 
 async function deleteSpace({ close }: { close: () => void }) {
   deleting.value = true
@@ -41,4 +43,34 @@ async function deleteSpace({ close }: { close: () => void }) {
       },
     ]"
   />
+
+  <Button @click="test = true">Open dialog with dropdown</Button>
+
+  <Dialog v-model:open="test" title="Dialog with dropdown">
+    <Dropdown
+      :options="[
+        {
+          label: 'Add user',
+          onClick() {
+            console.log('add user')
+          },
+        },
+        {
+          label: 'Delete user',
+          onClick() {
+            console.log('del user')
+          },
+        },
+      ]"
+    />
+
+    <MultiSelect
+      :options="[
+        { label: 'John Doe', value: 'john' },
+        { label: 'John Doe 2', value: 'john2' },
+        { label: 'John Doe 3', value: 'john3' },
+        { label: 'John Doe 4', value: 'john4' },
+      ]"
+    />
+  </Dialog>
 </template>
