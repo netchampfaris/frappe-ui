@@ -13,31 +13,48 @@ consumers (getDoc, getList, socket updates).
 ```ts
 interface DocStore {
   get(doctype: string, name: string): Doc | null
-  set(doc: Doc): void               // merges into existing, notifies subscribers
-  setMany(docs: Doc[]): void        // batch merge, notifies once per doc
+
+  // set(doc) merges into the existing entry. `meta` records per-entry flags:
+  //   full       — entry came from an endpoint known to return the full doc
+  //                (GET/POST/PATCH /document/{doctype}/{name} or response.docs[])
+  //   optimistic — entry is an unconfirmed optimistic write; the CacheAdapter
+  //                connector filters these out via the subscribeAll listener
+  set(doc: Doc, meta?: { full?: boolean; optimistic?: boolean }): void
+  setMany(docs: Doc[], meta?: { full?: boolean; optimistic?: boolean }): void
   remove(doctype: string, name: string): void
 
-  // Subscribe to every set/remove across all doctypes.
-  // Used by CacheAdapter to write-behind on every mutation.
-  subscribeAll(listener: (doc: Doc | null) => void): () => void
-
-  // Subscribe to a specific document. Returns unsubscribe function.
-  // Listener fires synchronously on set/remove — framework layer handles batching.
+  // Subscribers receive the doc plus its current meta on every notification.
   subscribe(
     doctype: string,
     name: string,
-    listener: (doc: Doc | null) => void,
+    listener: (
+      doc: Doc | null,
+      meta: { full: boolean; optimistic: boolean },
+    ) => void,
   ): () => void
 
-  // Subscribe to any change for a doctype (used by lists to know when to check their items).
-  // Fires with the name and doc of the changed entry.
   subscribeDoctype(
     doctype: string,
-    listener: (name: string, doc: Doc | null) => void,
+    listener: (
+      name: string,
+      doc: Doc | null,
+      meta: { full: boolean; optimistic: boolean },
+    ) => void,
   ): () => void
 
-  // Cold-start hydration from IDB / SSR — does not notify subscribers.
-  hydrate(docs: Doc[]): void
+  // subscribeAll fires for every set/remove across every doctype. The
+  // CacheAdapter's `connectCache` helper uses this and skips notifications
+  // where meta.optimistic === true (ADR-0005).
+  subscribeAll(
+    listener: (
+      doc: Doc | null,
+      meta: { full: boolean; optimistic: boolean },
+    ) => void,
+  ): () => void
+
+  // Cold-start hydration — does not notify subscribers. meta is preserved
+  // so that ADR-0001's "full only satisfies getDoc" rule survives reload.
+  hydrate(entries: Array<{ doc: Doc; meta: { full: boolean } }>): void
 
   // Snapshot all docs for a doctype.
   getAll(doctype: string): Doc[]
@@ -46,34 +63,52 @@ interface DocStore {
 type Doc = { doctype: string; name: string; [key: string]: any }
 ```
 
-Internal implementation: `Map<"DocType/name", Doc>` +
-`Map<"DocType/name", Set<Listener>>` + `Map<"DocType", Set<DoctypeListener>>` +
-`Set<GlobalListener>`.
+Internal implementation: `Map<"DocType/name", { doc: Doc; meta }>` +
+listener sets keyed by doctype/name, doctype, and "all".
 
 ### Merge semantics
 
-`set()` always merges: `Object.assign(existingDoc, incomingDoc)`. This means:
+`set()` merges: `Object.assign(existingDoc, incomingDoc)`. `meta` overwrites
+the entry's recorded flags, with two stickiness rules:
 
-- **Full doc responses** (from getDoc) include all fields → merge effectively
-  replaces the entire doc.
-- **Partial doc responses** (from getList with specific fields) update only the
-  provided fields, preserving any existing fields from a prior full fetch.
+- A subsequent partial `set()` does NOT downgrade a previously-`full` entry.
+  Once an entry is `meta.full = true`, the flag is sticky — newer partial
+  data refreshes fields without flipping the entry back to partial.
+- An optimistic `set()` followed by a confirmed `set()` for the same doc
+  flips `meta.optimistic` back to `false`. The confirmed data wins on any
+  fields it overlaps.
 
 Transforms are never stored. They are pure functions applied at read time by
 each consumer (getDoc, getList). Two consumers of the same doc can apply
 completely different transforms.
 
+### Optimistic patch registry
+
+DocStore maintains a per-doc registry of active optimistic patches so that
+per-field rollback works correctly under concurrent ops. When an optimistic
+write applies via `setValue.callOptimistic({...fields})`, the SDK records:
+
+- the patched field set,
+- a snapshot of those fields' values before the write,
+- the owning op's id.
+
+On confirmation, the patch is dropped. On rollback, only the patched fields
+are restored — concurrent or confirmed changes to other fields survive.
+Same-field overlaps degrade to last-write-wins with a dev-mode warning.
+See [ADR-0005](./adr/0005-optimistic-per-field-patches.md).
+
 ---
 
 ## RequestManager
 
-Handles HTTP concerns: deduplication, CSRF, abort, global hooks.
+HTTP plumbing: deduplication, CSRF, abort, global hooks, and the
+`response.docs[]` harvest.
 
 ```ts
 interface RequestManager {
   /** Executes an HTTP request and returns the parsed JSON body. */
   fetch(config: RequestConfig): Promise<any>
-  /** Fetches a single document. Resolves with the raw API JSON (`.data` holds the doc). */
+  /** Fetches a single document. The response includes the full doc on `.data`. */
   fetchDoc(doctype: string, name: string): Promise<any>
 }
 
@@ -84,60 +119,103 @@ interface RequestConfig {
   // If true, concurrent requests to the same URL+method are deduplicated.
   // Defaults to true for GET, false for mutations.
   dedupe?: boolean
+  // Wired to handle-level abort() — see "Abort" below.
   signal?: AbortSignal
 }
 
 interface RequestManagerConfig {
   baseUrl?: string
-  // Called before every request. Return a modified config to override it.
   onRequest?: (config: RequestConfig) => RequestConfig | void
-  // Called on every error. Use for session expiry, global toasts, etc.
   onError?: (error: FrappeResponseError) => void
-  // Called on every successful response.
   onResponse?: (response: any) => void
+  store: DocStore   // required — RequestManager harvests response.docs into it
 }
 ```
 
-Deduplication key: `${method}:${fullUrlWithParams}`. Only GET requests are
-deduplicated by default. POST/PATCH/DELETE are never deduplicated.
+### response.docs[] harvest
 
-CSRF token: read from cookie `csrf_token` on every mutating request, sent as
-`X-Frappe-CSRF-Token` header. Also sends `credentials: 'include'` for
-cookie-based auth.
+On every successful response, RequestManager scans the response envelope for
+a `docs` array. Each entry is written to DocStore with `meta.full = true` —
+regardless of which endpoint produced the response. This is the
+implementation of ADR-0001's "full" classification rule (4).
+
+Sources of `response.docs[]` in Frappe:
+
+- `execute_doc_method` (`frappe/api/v2.py:258`) — appends `doc.as_dict()`
+  after running any whitelisted doc method.
+- `bulk_update_docs` (`v2.py:454`) — appends each updated doc.
+- Direct doc endpoints (`read_doc`, `insert_doc`, `set_value`) — return full
+  docs in the primary response body; RequestManager additionally marks those
+  `full` via endpoint dispatch (rules 1–3).
+- Custom RPC — any server-side method may append docs explicitly to
+  participate in cross-instance sync.
+
+This is the mechanism that gives doc-methods, bulk ops, and well-behaved
+custom RPC cross-instance sync without any per-call wiring.
+
+### Deduplication & CSRF
+
+Dedup key: `${method}:${fullUrlWithParams}`. Only GET dedupes by default.
+POST/PATCH/DELETE never dedupe.
+
+CSRF token read from cookie `csrf_token`, sent as `X-Frappe-CSRF-Token` on
+mutating requests. `credentials: 'include'` on every request.
+
+### Abort
+
+Every reactive handle (`getDoc`, `getList`, `useCall`, `getCount`) owns an
+`AbortController`. The handle's `.abort()` method aborts the in-flight fetch
+via `RequestConfig.signal`. `.canAbort` reflects whether a request is
+currently abortable; `.aborted` flips to `true` after `.abort()` and is
+reset on the next fetch.
 
 ---
 
 ## CacheAdapter
 
-Write-behind IDB persistence. Not on the hot path — only used for cold-start
-hydration and background persistence.
+Two-channel write-behind persistence. The **doc channel** mirrors DocStore
+(with `meta.full` preserved). The **kv channel** persists arbitrary keyed
+values used by `useCall({ cache })` and `getList({ cache })`.
 
 ```ts
 interface CacheAdapter {
-  persist(doc: Doc): void
-  persistMany(docs: Doc[]): void
-  loadAll(): Promise<Doc[]>
-  remove(doctype: string, name: string): void
+  // Doc channel
+  persist(doc: Doc, meta: { full: boolean }): void
+  persistMany(docs: Doc[], meta: { full: boolean }): void
+  loadAllDocs(): Promise<Array<{ doc: Doc; meta: { full: boolean } }>>
+  removeDoc(doctype: string, name: string): void
+
+  // Kv channel
+  persistKey(key: string, value: unknown): void
+  loadKey(key: string): Promise<unknown | undefined>
+  removeKey(key: string): void
+
+  // Shared
   clear(): void
 }
 ```
 
-Three implementations are provided: `createMemoryCacheAdapter()` (tests),
-`createIDBCacheAdapter(dbName?)` (IndexedDB), and
-`createDefaultCacheAdapter(dbName?)` (IDB when available, memory fallback).
+Three implementations are provided:
+- `createMemoryCacheAdapter()` — tests and SSR.
+- `createIDBCacheAdapter(dbName?)` — IndexedDB with two object stores:
+  `docs` (key path `doctype + '/' + name`, value includes `meta`) and
+  `kv` (key path `key`, value is JSON-serialisable).
+- `createDefaultCacheAdapter(dbName?)` — IDB when available, memory fallback.
 
-Wire a cache to DocStore using `connectCache(store, cache)`:
+`connectCache(store, adapter)`:
 
-- Registers a `subscribeAll` listener before awaiting `loadAll()` so no writes
-  slip through during the initial IDB scan.
-- `loadAll()` → `store.hydrate(docs)` on startup.
-- After that, every `store.set()` triggers `cache.persist()` in the background.
+- Registers a `subscribeAll` listener that calls `adapter.persist(doc, meta)`
+  on every change — but **skips notifications with `meta.optimistic === true`**.
+- Calls `adapter.loadAllDocs()` on startup and feeds the result to
+  `store.hydrate(entries)` (which does not notify subscribers).
+- Any `subscribeAll` notifications that arrive during the `loadAllDocs()`
+  await are buffered and replayed after hydration.
+
+See [ADR-0003](./adr/0003-two-channel-cacheadapter.md).
 
 ---
 
 ## SocketManager
-
-Manages Socket.IO events and exposes typed subscription helpers.
 
 ```ts
 interface SocketManager {
@@ -147,32 +225,35 @@ interface SocketManager {
   off(event: string, handler?: (...args: any[]) => void): void
   /**
    * Subscribe to list_update events for a specific doctype.
-   * Emits `doctype_subscribe` to the server on the first subscriber,
-   * and `doctype_unsubscribe` when the last subscriber is removed.
+   * Emits `doctype_subscribe` to the server on the first subscriber and
+   * `doctype_unsubscribe` when the last subscriber is removed.
    * Returns an unsubscribe function.
    */
   onDocUpdate(doctype: string, callback: (name: string) => void): () => void
 }
 ```
 
-**`list_update`** payload: `{ doctype, name, user }` — sent to the doctype
-room when any doc in that doctype is saved. No full doc data is included; the
-list handle fetches the changed doc individually (or refetches the whole page).
+`list_update` payload: `{ doctype, name, user }` — no doc data. Subscribed
+handles refetch the changed doc individually (or refetch the current page if
+the name is unknown to the list).
 
-Two factory functions are provided:
-- `createNoopSocketManager()` — all methods are no-ops; used when `realtime` is false.
+Three factory functions:
+- `createNoopSocketManager()` — all methods are no-ops; used when
+  `createClient({ realtime: false })`.
 - `createSocketManager(store, socketIo)` — full implementation.
-- `createLazySocketManager(store, initFn)` — wraps `createSocketManager`; defers
-  `initFn()` until the first subscriber calls `onDocUpdate`.
+- `createLazySocketManager(store, initFn)` — wraps `createSocketManager`;
+  defers `initFn()` until the first subscriber calls `onDocUpdate`.
+
+Per-resource subscription gating is handled by the Vue adapter: only handles
+that opted in via `getList({ realtime: true })` or `getDoc(name, { realtime: true })`
+call `onDocUpdate`. See [ADR-0004](./adr/0004-realtime-opt-in-per-resource.md).
 
 ---
 
 ## Operation Shape
 
-Shared contract for all operations. Framework layers wrap this to add
-reactive `loading`/`error`.
-
-Single verb: **`.call()`** — for all operations.
+Shared contract for every mutation: `setValue`, `delete`, `insert`,
+doc-methods, controller methods, bulk ops.
 
 ```ts
 interface Operation<TParams, TResult> {
@@ -180,46 +261,89 @@ interface Operation<TParams, TResult> {
   // Rejects on error with FrappeResponseError.
   call(params: TParams): Promise<TResult>
 
-  // Execute with optional optimistic update. If `updater` is provided it is
-  // applied to DocStore immediately. On error, calls `rollback` or auto-reverts
-  // via a pre-update snapshot.
+  // Execute with an optional optimistic update. If `updater` is provided it
+  // is applied to DocStore immediately. On error, the SDK reverts via the
+  // per-field patch registry (for built-in setValue/delete/insert) or via
+  // the caller-provided `rollback` (for custom updaters).
   callOptimistic(
     params: TParams,
     updater?: (store: DocStore) => void,
     rollback?: (store: DocStore) => void,
   ): Promise<TResult>
+
+  // Register a validation hook. Returning a string or Error (sync or async)
+  // from `fn` blocks the next `.call()`: the returned value is wrapped as a
+  // FrappeResponseError, `.error` is set, and the promise rejects. Returning
+  // void/undefined proceeds.
+  //
+  // Fluent setter — mutates the operation and returns `this` for chaining:
+  //   await op.validate(fn).call(args)
+  //
+  // Pass `null` to clear. `validate` is symmetric across every Operation —
+  // setValue, delete, insert, doc-methods, controller methods, bulk ops —
+  // and is always optional.
+  validate(
+    fn:
+      | ((params: TParams) => string | Error | void | Promise<string | Error | void>)
+      | null,
+  ): this
 }
 ```
 
 ### Error semantics
 
-`.call()` **rejects the promise AND sets `.error`**.
-Consumers can use either pattern:
+`.call()` **rejects the promise AND sets `.error`**. Consumers can use either
+pattern:
 
 ```ts
-// Pattern 1: try/catch (for imperative flows)
+// Pattern 1: try/catch (imperative)
 try {
   await todo.setValue.call({ status: 'Closed' })
-} catch (e) { /* FrappeResponseError */ }
+} catch (e) {
+  /* FrappeResponseError */
+}
 
-// Pattern 2: check .error (for template-driven UIs)
+// Pattern 2: check .error (template-driven)
 await todo.setValue.call({ status: 'Closed' }).catch(() => {})
-if (todo.setValue.error) { /* show inline error */ }
+if (todo.setValue.error) {
+  /* show inline error */
+}
 ```
 
-`.error` is cleared at the start of each new `.call()`.
+`.error` is cleared at the start of each new `.call()`. If a registered
+validator short-circuits the call, the error wrapping the validation value
+is set synchronously before the returned promise rejects.
+
+### Optimistic semantics
+
+Built-in operations track patches per-field for correct rollback under
+concurrent ops:
+
+- **`setValue.callOptimistic({...fields})`** — records the patch and a
+  per-field snapshot before applying. Rollback restores only the patched
+  fields; concurrent or confirmed changes to other fields survive.
+- **`delete.callOptimistic()`** — snapshots the full doc, removes it from
+  the store. Rollback re-inserts the doc.
+- **`insert.callOptimistic(values, tempDoc, options)`** — inserts the temp
+  doc at the requested position. Rollback removes the temp doc by its name.
+- **Custom `callOptimistic(args, updater, rollback)`** — the caller's
+  `rollback` is authoritative; the SDK does not attempt patch tracking
+  because it can't know what `updater` touched.
+
+Same-field overlapping ops degrade to last-write-wins on the store, with a
+dev-mode warning. See [ADR-0005](./adr/0005-optimistic-per-field-patches.md).
 
 ### Return values
 
-| Operation                                 | Resolves to                  |
-|-------------------------------------------|------------------------------|
-| `setValue.call()`                         | Updated `Doc`                |
-| `delete.call()`                           | `void`                       |
-| `insert.call(values, { at? })`            | Created `Doc` (with `name`)  |
-| `bulkDelete.call()`                       | `void`                       |
-| `bulkUpdate.call()`                       | `Doc[]` (updated docs)       |
-| `docMethod.call()`                        | Server method return value   |
-| `controllerMethod.call()`                 | Server method return value   |
+| Operation                              | Resolves to                  |
+|----------------------------------------|------------------------------|
+| `setValue.call()`                      | Updated `Doc`                |
+| `delete.call()`                        | `void`                       |
+| `insert.call(values, { at? })`         | Created `Doc` (with `name`)  |
+| `bulkDelete.call()`                    | `void`                       |
+| `bulkUpdate.call()`                    | `Doc[]` (updated docs)       |
+| `docMethod.call()`                     | Server method return value   |
+| `controllerMethod.call()`              | Server method return value   |
 
 `insert` uses the specialised `InsertOperation` shape — `call` and
 `callOptimistic` accept an extra `options.at: 'start' | 'end' | number` arg
@@ -238,24 +362,33 @@ class FrappeResponseError extends Error {
   exception?: string
   indicator?: string
   httpStatus: number
-  _suppressGlobalError: boolean  // set by local onError to prevent global handler
+  _suppressGlobalError: boolean // set by local onError to skip global handler
 
-  get isNotFound(): boolean    // httpStatus === 404
-  get isPermission(): boolean  // httpStatus === 403
-  get isValidation(): boolean  // type === 'ValidationError'
-  get isAuth(): boolean        // httpStatus === 401
+  get isNotFound(): boolean   // httpStatus === 404
+  get isPermission(): boolean // httpStatus === 403
+  get isValidation(): boolean // type === 'ValidationError'
+  get isAuth(): boolean       // httpStatus === 401
 }
 ```
+
+When a registered validator short-circuits a call, the returned value is
+wrapped as a `FrappeResponseError` with `type: 'ValidationError'` and
+`httpStatus: 0`, so the `isValidation` getter detects it.
 
 ---
 
 ## Progress Checklist
 
 - [x] DocStore: get/set/remove/subscribe/subscribeDoctype/subscribeAll/hydrate
+- [x] DocStore: `meta` channel on set + subscriptions (`full`, `optimistic`)
+- [x] DocStore: optimistic patch registry for per-field rollback (ADR-0005)
 - [x] RequestManager: fetch + fetchDoc with dedup + CSRF + abort + global hooks
-- [x] CacheAdapter: IDB write-behind + loadAll + connectCache
-- [x] SocketManager: list_update with onDocUpdate helper
+- [x] RequestManager: `response.docs[]` auto-harvest into DocStore (ADR-0001)
+- [x] Handle-level abort wired via `RequestConfig.signal`
+- [x] CacheAdapter: two-channel (doc + kv); `connectCache` filters optimistic (ADR-0003)
+- [x] SocketManager: `list_update` with `onDocUpdate` helper
+- [x] Per-resource realtime gating in adapter layer (ADR-0004)
 - [x] FrappeResponseError with structured error types
-- [x] Operation shape with call/callOptimistic
-- [x] CoreDocHandle with dispose
-- [x] CoreListHandle with dispose
+- [x] Operation shape with `call` / `callOptimistic` / `validate(fn)` (chainable)
+- [x] CoreDocHandle with `abort` + `dispose`
+- [x] CoreListHandle with `abort` + `dispose`

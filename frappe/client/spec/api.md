@@ -11,9 +11,18 @@ called once in the app's client setup file (e.g., `src/client.ts`).
 
 ```ts
 // src/client.ts
-import { createClient, createDefaultCacheAdapter } from 'frappe-ui/frappe/vue'
+import {
+  createClient,
+  createDefaultCacheAdapter,
+} from 'frappe-ui/frappe/vue'
 
-export const { defineDoctype, store, socket } = createClient({
+export const {
+  defineDoctype,
+  useCall,
+  useSocketEvent,
+  store,
+  socket,
+} = createClient({
   baseUrl: 'https://mysite.com',
   realtime: true,
   cache: createDefaultCacheAdapter('my-app-cache'),
@@ -25,22 +34,22 @@ export const { defineDoctype, store, socket } = createClient({
 
 Options:
 
-| Option        | Type                                               | Description                                                                        |
-| ------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `baseUrl?`    | `string`                                           | Prepended to all API requests. Defaults to `''`.                                   |
-| `realtime?`   | `boolean`                                          | Enable live `list_update` events via Socket.IO.                                    |
-| `cache?`      | `CacheAdapter`                                     | Persistence adapter for cold-start hydration (e.g. `createDefaultCacheAdapter()`). |
-| `onRequest?`  | `(config: RequestConfig) => RequestConfig \| void` | Interceptor called before every request.                                           |
-| `onResponse?` | `(response: any) => void`                          | Called after every successful response.                                            |
-| `onError?`    | `(error: FrappeResponseError) => void`             | Global error handler.                                                              |
+| Option        | Type                                               | Description                                                                                                                                                                       |
+| ------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `baseUrl?`    | `string`                                           | Prepended to all API requests. Defaults to `''`.                                                                                                                                  |
+| `realtime?`   | `boolean`                                          | Initialises `SocketManager` and exposes `socket`. Per-resource subscriptions remain opt-in via `getList`/`getDoc({ realtime: true })` and `useSocketEvent` — see [ADR-0004](./adr/0004-realtime-opt-in-per-resource.md). |
+| `cache?`      | `CacheAdapter`                                     | Two-channel persistence adapter (doc + kv). See [ADR-0003](./adr/0003-two-channel-cacheadapter.md).                                                                                |
+| `onRequest?`  | `(config: RequestConfig) => RequestConfig \| void` | Interceptor called before every request.                                                                                                                                          |
+| `onResponse?` | `(response: any) => void`                          | Called after every successful response. RequestManager also harvests `response.docs[]` here (see [response.docs harvesting](#response-docs-harvesting)).                            |
+| `onError?`    | `(error: FrappeResponseError) => void`             | Global error handler.                                                                                                                                                             |
 
 ---
 
 ## Developer API: doctypes file
 
 This is the primary developer-facing import. Developers never call
-`defineDoctype` directly — `TSInterfaceGenerator` (a Python-side tool) generates
-the entire doctypes file.
+`defineDoctype` directly — `TSInterfaceGenerator` (a Python-side tool)
+generates the entire doctypes file.
 
 ```ts
 // App code — this is the entire import surface
@@ -61,14 +70,13 @@ await ToDo.bulkEmail.call({ names: ['todo-1'] })
 `frappe/types/ts_interface_generator.py` that runs server-side via
 `bench execute`. It:
 
-1. Reads DocType metadata via `frappe.get_meta(doctype)` for field definitions
-2. Loads the Python controller class via `get_controller(doctype)` and inspects
-   it for `@frappe.whitelist()` methods
+1. Reads DocType metadata via `frappe.get_meta(doctype)` for field definitions.
+2. Loads the Python controller class via `get_controller(doctype)` and
+   inspects it for `@frappe.whitelist()` methods.
 3. Generates a single `.ts` file containing both **type interfaces** and
-   **runtime `defineDoctype` calls**
+   **runtime `defineDoctype` calls**.
 
 ```bash
-# Invocation
 bench --site mysite.com execute \
   frappe.types.ts_interface_generator.run_configured_generators \
   --kwargs '{"app_name": "gameplan"}'
@@ -76,13 +84,9 @@ bench --site mysite.com execute \
 
 ### What gets generated
 
-**Output file** (`src/doctypes.ts`):
-
 ```ts
 // Auto-generated by TSInterfaceGenerator — do not edit
 import { defineDoctype } from '@/client'
-
-// ... base DocType / ChildDocType interfaces ...
 
 // @doctype: GP Task
 // @migration_hash: 99f5c7f311148cee...
@@ -96,36 +100,38 @@ export interface GPTaskInterface extends DocType {
 
 export const GPTask = defineDoctype<GPTaskInterface>()({
   doctype: 'GP Task',
-  controllerMethods: {
-    getList: {
-      method: 'get_list',
-      httpMethod: 'POST',
-      args: (params: { fields?: string, filters?: string, ... }) => params,
-    },
-  },
-  docMethods: {
-    trackVisit: {
-      method: 'track_visit',
-      httpMethod: 'POST',
-      args: () => ({}),
-    },
-  },
+  controllerMethods: { /* ... */ },
+  docMethods: { /* ... */ },
 })
 // @doctype: GP Task end
 ```
 
-**Key features of the generator:**
-
-- `migration_hash` — skips regenerating interface if DocType schema unchanged
-- `// @manual` annotations — preserves hand-edited overrides across regeneration
-- `existing_methods` parsing — preserves manually refined method definitions
-- Automatic camelCase conversion for method names
-- Python type hints → TypeScript type inference for method args
+Key features:
+- `migration_hash` — skips regenerating an interface when the DocType schema
+  is unchanged.
+- `// @manual` annotations — preserves hand-edited overrides across
+  regeneration.
+- `existing_methods` parsing — preserves manually refined method definitions.
+- Automatic camelCase conversion for method names.
+- Python type hints → TypeScript inference for method args.
 
 ### `@/client` module
 
-The generated file imports `defineDoctype` from `@/client` (or `~client`), which
-is the app's client setup file. This is a standard Vite alias:
+```ts
+// src/client.ts
+import { createClient } from 'frappe-ui/frappe/vue'
+
+export const { defineDoctype, useCall, useSocketEvent, store, socket } =
+  createClient({
+    realtime: true,
+    onError(error) {
+      if (error.isAuth) router.push('/login')
+    },
+  })
+```
+
+The generated file imports `defineDoctype` from `@/client`. Standard Vite
+alias:
 
 ```ts
 // vite.config.ts
@@ -136,30 +142,18 @@ resolve: {
 }
 ```
 
-```ts
-// src/client.ts
-import { createClient } from 'frappe-ui/frappe/vue'
-
-export const { defineDoctype, store, socket } = createClient({
-  realtime: true,
-  onError(error) {
-    if (error.isAuth) router.push('/login')
-  },
-})
-```
-
 ---
 
 ## defineDoctype (internal)
 
 Used internally by the generated doctypes file. Not called by app developers
-directly, but documented here for completeness.
+directly.
 
 ```ts
 const ToDo = defineDoctype<ToDoDoc>()({
   doctype: 'ToDo',
-  docMethods: { ... },
-  controllerMethods: { ... },
+  docMethods: { /* ... */ },
+  controllerMethods: { /* ... */ },
 })
 ```
 
@@ -169,10 +163,10 @@ What `ToDo` exposes:
 - `ToDo.getList(options?)` → reactive doc list
 - `ToDo.newDoc(defaults?)` → local draft
 - `ToDo.getCount(options?)` → reactive count
+- `ToDo.setValue` → doctype-level operation
 - `ToDo.bulkDelete` → operation
 - `ToDo.bulkUpdate` → operation
-- `ToDo.bulkEmail` → mapped controller method
-- `ToDo.exportCsv` → mapped controller method
+- mapped `controllerMethods` and `docMethods`
 
 ---
 
@@ -180,16 +174,35 @@ What `ToDo` exposes:
 
 Fetches a single document. Returns a reactive handle.
 
+### Freshness contract
+
+`doc` reads from the canonical DocStore but is satisfied **only when the
+DocStore entry's `meta.full` is `true`**. Entries that arrived via
+`getList` projections (partial fetches) leave `doc` null and `loading: true`
+until a full fetch lands. This is the correctness contract from
+[ADR-0001](./adr/0001-doc-freshness-and-completeness.md): a `getDoc` never
+exposes data sourced from a list, only from `/document/{doctype}/{name}` or
+`response.docs[]`.
+
 ```ts
 const todo = ToDo.getDoc(() => props.id, {
-  // Don't fetch until id exists (for dependent queries)
+  // Don't fetch until id exists
   enabled: () => !!props.id,
+
+  // Optional custom endpoint (e.g., a wrapper that returns a special view)
+  url: '/api/method/myapp.api.get_special_todo',
+
+  // First-render placeholder; doesn't satisfy the freshness contract
+  initialData: { /* ... */ },
 
   // Derive computed fields from server data
   transform: (doc) => ({
     ...doc,
     isOverdue: new Date(doc.due_date) < new Date(),
   }),
+
+  // Subscribe to list_update for this doc's name (per-resource opt-in)
+  realtime: true,
 
   onSuccess: (doc) => analytics.track('viewed', doc.name),
   onError: (err) => console.error(err),
@@ -199,12 +212,16 @@ const todo = ToDo.getDoc(() => props.id, {
 ### Return shape
 
 ```ts
-todo.doc // Doc | null — reads from canonical DocStore
-todo.loading // boolean — true during fetch
-todo.error // FrappeResponseError | null
-todo.reload() // refetch from server
-todo.dispose() // unsubscribe; called automatically on scope cleanup
-todo.promise // Promise<void> — resolves when first fetch completes (for await / Suspense)
+todo.doc                // Doc | null — full-only; partial entries are ignored
+todo.loading            // true while any fetch is in flight (initial or reload)
+todo.isInitialLoading   // true only during the first fetch when `doc` is null
+todo.error              // FrappeResponseError | null
+todo.reload()           // refetch from server
+todo.dispose()          // unsubscribe; auto-called on scope cleanup
+todo.promise            // Promise<void> — resolves when first fetch completes
+todo.abort()            // abort the in-flight request, if any
+todo.canAbort           // boolean — true when a request is currently abortable
+todo.aborted            // boolean — true after abort() until the next fetch
 ```
 
 ### Standard mutations
@@ -213,39 +230,43 @@ todo.promise // Promise<void> — resolves when first fetch completes (for await
 // setValue — PATCH /api/v2/document/{doctype}/{name}
 await todo.setValue.call({ description: 'Updated' })
 
-// Optimistic: applies to DocStore immediately, reverts on error
+// Optimistic — applies per-field patch immediately; reverts on error
 await todo.setValue.callOptimistic({ status: 'Closed' })
 
-// Custom optimistic: provide explicit store updater + rollback
-await todo.setValue.callOptimistic({ status: 'Closed' }, (store) =>
-  store.set({
-    ...store.get('ToDo', todo.doc.name),
-    status: 'Closed',
-    closedAt: Date.now(),
-  }),
-)
+// Validate before submit — return string/Error to block, void to proceed.
+// `validate(fn)` mutates and returns the operation for chaining; the
+// validator persists until cleared with `validate(null)`.
+await todo.setValue
+  .validate(({ description }) => {
+    if (!description) return 'Description is required'
+  })
+  .call({ description: 'Updated' })
 
-todo.setValue.loading // boolean
-todo.setValue.error // FrappeResponseError | null
+todo.setValue.loading
+todo.setValue.error
 
 // Delete — DELETE /api/v2/document/{doctype}/{name}
 await todo.delete.call()
-await todo.delete.callOptimistic() // removes from store immediately
-
-todo.delete.loading
-todo.delete.error
+await todo.delete.callOptimistic()
+todo.delete.validate(() => (todo.doc?.locked ? 'Cannot delete locked todo' : undefined))
 ```
 
 ### Custom doc methods
 
 ```ts
 await todo.approve.call()
-
 await todo.assignTo.call({ user: 'faris@frappe.io', note: 'Urgent' })
+
+// Inline at the call site
+await todo.assignTo
+  .validate(({ user }) => {
+    if (!user.includes('@')) return 'Invalid user'
+  })
+  .call({ user: 'faris@frappe.io', note: 'Urgent' })
 
 todo.assignTo.loading
 todo.assignTo.error
-todo.assignTo.data // server response
+todo.assignTo.data // server method return value
 ```
 
 ### Name reactivity
@@ -254,8 +275,7 @@ todo.assignTo.data // server response
 const todoName = ref('todo-1')
 const todo = ToDo.getDoc(todoName)
 
-// Later: changing the ref refetches automatically
-todoName.value = 'todo-2'
+todoName.value = 'todo-2'  // unsubscribes old, subscribes new, refetches
 ```
 
 ---
@@ -272,87 +292,148 @@ const sortOrder = ref('modified desc')
 const todos = ToDo.getList({
   fields: ['name', 'description', 'status', 'priority'],
   filters: {
-    status, // reactive ref
-    assigned_to: 'user@example.com', // static value
-    priority: () => (search.value ? undefined : 1), // getter (undefined = omit filter)
+    status,                                          // reactive ref
+    assigned_to: 'user@example.com',                 // static value
+    priority: () => (search.value ? undefined : 1),  // getter (undefined = omit)
   },
-  orderBy: sortOrder, // reactive — refetches on change
-  groupBy: 'status', // static or reactive (MaybeRefOrGetter<string>)
-  limit: 20, // static or reactive (MaybeRefOrGetter<number>)
-  start: 0,
-  debounce: 300, // ms, debounce filter changes
+  orFilters: { owner: 'me', assigned_to: 'me' },     // OR semantics
 
-  // Custom URL — same params/response shape as standard list endpoint
+  orderBy: sortOrder,
+  groupBy: 'status',
+  limit: 20,
+  start: 0,
+  debounce: 300,
+
+  // Custom URL — same params/response shape as the standard list endpoint
   url: '/api/v2/method/gameplan.api.get_discussions',
+
+  // Persist the names array under this kv-cache key for instant cold-start render
+  cache: 'open-todos',
+
+  // First-render placeholder
+  initialData: [],
+
+  // Subscribe this list to list_update events for ToDo
+  realtime: true,
 
   // Don't fetch until ready
   enabled: () => !!teamId.value,
 
-  transform: (doc) => ({
-    ...doc,
-    statusLabel: doc.status === 'Open' ? 'To Do' : 'Done',
-  }),
+  transform: (doc) => ({ ...doc, statusLabel: doc.status === 'Open' ? 'To Do' : 'Done' }),
 
-  onSuccess: (docs) => {
-    /* side effects */
-  },
-  onError: (err) => {
-    /* handle */
-  },
+  onSuccess: (docs) => { /* side effects */ },
+  onError: (err) => { /* handle */ },
 })
 ```
+
+### Filter syntax (matches Frappe exactly)
+
+Three accepted shapes, mirroring Frappe's list endpoint:
+
+```ts
+// (a) Object form — equality, one filter per field
+filters: {
+  status: 'Open',
+  assigned_to: 'user@example.com',
+}
+
+// (b) Object form with operator tuple — value is [operator, operand(s)]
+filters: {
+  status: ['like', '%urgent%'],
+  priority: ['in', ['High', 'Critical']],
+  due_date: ['between', ['2026-05-01', '2026-05-31']],
+  modified: ['>=', '2026-05-01'],
+  owner: ['!=', 'admin@frappe.io'],
+}
+
+// (c) Array form — list of [field, operator, value] tuples (needed when one
+//     field needs multiple conditions, or when filters are built programmatically)
+filters: [
+  ['status', '=', 'Open'],
+  ['priority', '>=', 3],
+  ['title', 'like', '%bug%'],
+]
+```
+
+Operators accepted (per Frappe): `=`, `!=`, `>`, `<`, `>=`, `<=`, `like`,
+`not like`, `in`, `not in`, `between`, `is`, `is not`. Whatever Frappe's
+list endpoint accepts, the SDK passes through verbatim — no client-side
+parsing or operator whitelist.
+
+`orFilters` accepts the same three shapes and maps to Frappe's `or_filters`
+parameter (`status='Open' OR priority>=3`).
+
+Reactivity rules:
+- The whole `filters` value can be a `Ref`, `ComputedRef`, or getter.
+- In object forms (a, b), each value can independently be reactive.
+- For reactive operator values, wrap the tuple in a getter:
+  `status: () => ['like', `%${q.value}%`]`.
 
 ### Return shape
 
 ```ts
-todos.data // Doc[] — each item backed by DocStore canonical ref
-todos.loading // boolean
-todos.error // FrappeResponseError | null
-todos.hasNextPage // boolean
-todos.hasPreviousPage // boolean
-todos.reload() // refetch current page
-todos.next() // fetch next page (increments start by limit)
-todos.previous() // fetch previous page
-todos.dispose() // unsubscribe; called automatically on scope cleanup
-todos.promise // Promise<void>
+todos.data              // Doc[] — each item backed by a DocStore entry
+todos.loading           // boolean — true while any fetch is in flight
+todos.isInitialLoading  // true only during the first fetch with no prior data
+todos.error             // FrappeResponseError | null
+todos.hasNextPage
+todos.hasPreviousPage
+todos.row(name)         // Doc | undefined — O(1) lookup by name
+todos.reload()
+todos.next()
+todos.previous()
+todos.dispose()
+todos.promise
+todos.abort()
+todos.canAbort
+todos.aborted
 
 // Per-item loading check
-todos.isItemLoading('todo-1') // boolean — true if any operation is in flight
-todos.isItemLoading('todo-1', 'setValue') // check specific action
+todos.isItemLoading('todo-1')                 // any operation in flight
+todos.isItemLoading('todo-1', 'setValue')     // specific action
 todos.isItemLoading('todo-1', 'delete')
 ```
 
 ### List mutations
 
+Every mutation accepts a `validate` hook with the same shape as Operation
+elsewhere.
+
 ```ts
-// Update a row — PATCH /api/v2/document/{doctype}/{name}
+// Update a row
 await todos.setValue.call({ name: 'todo-1', status: 'Closed' })
 await todos.setValue.callOptimistic({ name: 'todo-1', status: 'Closed' })
 
-// Delete a row — DELETE /api/v2/document/{doctype}/{name}
-await todos.delete.call('todo-1')
-await todos.delete.callOptimistic('todo-1') // removes from list + store immediately
+// Validators persist on the operation; chain inline or set once at setup
+todos.setValue.validate(({ status }) => (status === '' ? 'Status required' : undefined))
 
-// Insert a new row — POST /api/v2/document/{doctype}
+// Delete a row
+await todos.delete.call('todo-1')
+await todos.delete.callOptimistic('todo-1')
+todos.delete.validate((name) => (locked(name) ? 'Locked' : undefined))
+
+// Insert a row
 await todos.insert.call({ description: 'New task', status: 'Open' })
-// Insert at end of list
 await todos.insert.call({ description: 'New task' }, { at: 'end' })
-// Insert at specific index
 await todos.insert.call({ description: 'New task' }, { at: 2 })
 
 // Optimistic insert — show a placeholder immediately, replace on success
 await todos.insert.callOptimistic(
   { description: 'New task' },
-  { name: 'temp', description: 'New task' }, // tempDoc shown in list during flight
+  { name: 'temp', description: 'New task' },
   { at: 'start' },
 )
+
+// Inline validation at the call site
+await todos.insert
+  .validate(({ description }) => (!description ? 'Description required' : undefined))
+  .call({ description: 'New task' })
 ```
 
 ### Internal list state
 
 Each `getList` instance maintains its own ordered array of names — this is
-list-local state, not stored in DocStore. The actual doc data is derived from
-the store:
+list-local state. The actual doc data is derived from DocStore:
 
 ```
 List instance:
@@ -362,14 +443,27 @@ List instance:
 
 This means:
 
-- Two lists can have different filters, fields, and transforms
-- A doc appearing in both lists is one entry in DocStore
-- Updating that doc via either list propagates to both automatically
+- Two lists can have different filters, fields, and transforms.
+- A doc appearing in both lists is one entry in DocStore.
+- Updating that doc via either list propagates to both automatically.
 
-**What sync does NOT handle:** filter membership changes. If `todo-1.status`
-changes from 'Open' to 'Closed', a list filtering `status: 'Open'` won't
-automatically remove it — it will show the updated doc until the list refetches.
-The store is a normalized cache, not a query engine.
+### Lists are projections — what sync does NOT handle
+
+DocStore is a normalised cache, not a query engine. A `getList` owns its own
+names array; if a doc mutation moves a doc out of (or into) the filter
+window, the list keeps showing it (or fails to show it) until something
+triggers a refetch.
+
+Three escape hatches:
+
+1. **`list.reload()` after a mutation** — explicit consumer-driven refresh.
+2. **`realtime: true` on the list** — `list_update` events trigger a refetch
+   of the changed doc (or the whole page if its name is unknown).
+3. **Manual revalidation** — wrap mutations in a flow that calls
+   `list.reload()` on completion.
+
+A future `revalidateOnMutation: true` option is noted as a candidate but is
+not in v1.
 
 ### Cross-instance sync
 
@@ -380,7 +474,7 @@ const openTodos = ToDo.getList({ filters: { status: 'Open' } })
 // Component B
 const allTodos = ToDo.getList({})
 
-// Updating a todo in Component A automatically reflects in Component B
+// Updating a todo from Component A automatically reflects in Component B
 // because both read from the same canonical DocStore entries.
 await openTodos.setValue.call({ name: 'todo-1', status: 'Closed' })
 // → allTodos.data also shows 'Closed' for todo-1
@@ -394,22 +488,23 @@ Creates a local-only reactive draft for "Create" forms. Not persisted until
 `insert.call()`.
 
 ```ts
-const todo = ToDo.newDoc({
-  status: 'Open',
-  priority: 1,
-})
+const todo = ToDo.newDoc({ status: 'Open', priority: 1 })
 
 // Reactive — bind directly to form inputs
 todo.doc.description = 'Draft task'
 todo.doc.assigned_to = 'faris@frappe.io'
 
-// Persist to server — POST /api/v2/document/{doctype}
-await todo.insert.call()
-// → On success: doc added to DocStore, merges server-assigned fields back into todo.doc
+// Validate before insert (chainable; clear with .validate(null))
+await todo.insert
+  .validate((values) => {
+    if (!values.description) return 'Description required'
+  })
+  .call()
+// → On success: doc added to DocStore (meta.full = true), name merges in
 
 todo.insert.loading
 todo.insert.error
-todo.doc.name // server-assigned name after insert
+todo.doc.name           // server-assigned name after insert
 ```
 
 ---
@@ -422,34 +517,42 @@ Fetches document count for a set of filters. Reactive.
 const count = ToDo.getCount({
   filters: { status: ref('Open') },
   enabled: () => !!props.showCount,
+  initialData: 0,
 })
 
-count.data // number | null
-count.loading // boolean
-count.error // FrappeResponseError | null
+count.data              // number | null
+count.loading           // boolean
+count.isInitialLoading  // boolean
+count.error             // FrappeResponseError | null
 count.reload()
+count.abort()
+count.canAbort
+count.aborted
 ```
 
 ---
 
 ## Doctype-level setValue
 
-Set values on any document without creating a `getDoc` handle first. Useful for
-quick patches in dialogs, list row actions, etc.
+Set values on any document without creating a `getDoc` handle first.
 
 ```ts
 await ToDo.setValue.call({ name: 'todo-1', status: 'Closed' })
-
-// Optimistic — merges into DocStore immediately, reverts on error
 await ToDo.setValue.callOptimistic({ name: 'todo-1', status: 'Closed' })
 
-ToDo.setValue.loading // boolean
-ToDo.setValue.error // FrappeResponseError | null
-ToDo.setValue.data // Doc | null
+// Doctype-level operations are shared across the app — prefer inline
+// validation at each call site over mutating the shared instance.
+await ToDo.setValue
+  .validate(({ status }) => (status === '' ? 'Status required' : undefined))
+  .call({ name: 'todo-1', status: 'Closed' })
+
+ToDo.setValue.loading
+ToDo.setValue.error
+ToDo.setValue.data
 ```
 
 Updates the canonical DocStore, so any `getDoc` or `getList` handle showing
-that document will reflect the change automatically.
+that document reflects the change automatically.
 
 ---
 
@@ -457,16 +560,21 @@ that document will reflect the change automatically.
 
 ```ts
 // Bulk delete
-await ToDo.bulkDelete.call(['todo-1', 'todo-2', 'todo-3'])
-// → Removes from DocStore → all lists/docs update automatically
+await ToDo.bulkDelete
+  .validate((names) => (names.length > 100 ? 'Too many at once' : undefined))
+  .call(['todo-1', 'todo-2', 'todo-3'])
 
 // Bulk update — per-item changes
-await ToDo.bulkUpdate.call([
-  { name: 'todo-1', status: 'Closed' },
-  { name: 'todo-2', priority: 3 },
-])
-// → Updates DocStore per item → all consumers reflect changes
+await ToDo.bulkUpdate
+  .validate((items) => (items.length === 0 ? 'Nothing to update' : undefined))
+  .call([
+    { name: 'todo-1', status: 'Closed' },
+    { name: 'todo-2', priority: 3 },
+  ])
 ```
+
+Bulk update appends each updated doc to `response.docs[]` server-side, so
+every `getDoc` and `getList` showing those docs updates automatically.
 
 ---
 
@@ -475,7 +583,10 @@ await ToDo.bulkUpdate.call([
 Called at the DocType level (not on a specific document instance).
 
 ```ts
-await ToDo.bulkEmail.call({ names: ['todo-1', 'todo-2'] })
+await ToDo.bulkEmail
+  .validate(({ names }) => (names.length === 0 ? 'Select at least one' : undefined))
+  .call({ names: ['todo-1', 'todo-2'] })
+
 ToDo.bulkEmail.loading
 ToDo.bulkEmail.error
 ToDo.bulkEmail.data
@@ -495,76 +606,199 @@ const upload = uploadFile({
   doctype: 'ToDo',
   name: 'todo-1',
   fieldname: 'attachment',
-  isPrivate: true, // default: true
-  folder: 'Home/Attachments', // default
-  baseUrl: '', // default
+  isPrivate: true,
+  folder: 'Home/Attachments',
+  baseUrl: '',
 })
 
 upload.call()
 upload.progress // 0–100
-upload.loading // boolean
-upload.data // File doc on success
-upload.error // FrappeResponseError | null on failure
-upload.abort() // cancel upload
+upload.loading
+upload.data     // File doc on success
+upload.error
+upload.abort()
 ```
+
+---
+
+## useCall
+
+Free-form RPC composable. Peer to `defineDoctype` — for endpoints that aren't
+bound to a single DocType (cross-doctype aggregates, public endpoints,
+polymorphic dispatchers, system queries, third-party APIs). See
+[ADR-0002](./adr/0002-usecall-as-peer-primitive.md).
+
+```ts
+import { useCall } from '@/client'
+
+const apps = useCall<App[]>({
+  url: '/api/method/frappe.apps.get_apps',
+  method: 'GET',                                // default 'GET'
+  params: { filter: ref('active') },            // per-key OR whole-object reactive
+  immediate: true,                              // fetch on mount; default true
+  debounce: 300,
+  cache: 'apps-list',                           // kv-channel cache key
+  initialData: [],                              // first-render value
+  enabled: () => !!session.user,
+  transform: (data) => data.map(normalise),
+  onSuccess: (data) => { /* ... */ },
+  onError: (err) => { /* ... */ },
+})
+
+apps.data               // T | null
+apps.loading            // boolean — true while any fetch is in flight
+apps.isInitialLoading   // boolean — first fetch, no data yet
+apps.error              // FrappeResponseError | null
+apps.promise            // Promise<void>
+apps.abort()
+apps.canAbort
+apps.aborted
+
+apps.call(args?)        // primary v3 verb (matches Operation.call())
+apps.submit(args?)      // alias — eases migration from createResource
+apps.reload()           // refetch with currently-bound params
+apps.dispose()
+```
+
+`useCall` does NOT write its result into DocStore. Cross-instance sync for
+doc-shaped responses happens only via Frappe's `response.docs[]` side channel
+(see [response.docs harvesting](#response-docs-harvesting) below). Endpoints
+that want their returned docs to participate in app-wide sync should call
+`frappe.response.docs.append(doc.as_dict())` server-side.
+
+### Migration from `createResource`
+
+Most `createResource({ url, ... })` call sites are a mechanical rename to
+`useCall({ url, ... })`. The `.submit()` alias is preserved specifically to
+ease this migration; the canonical v3 verb is `.call()`.
+
+---
+
+## useSocketEvent
+
+Vue composable for subscribing to custom socket events — anything other than
+the built-in `list_update` handled by `getList`/`getDoc({ realtime: true })`.
+
+```ts
+import { useSocketEvent } from '@/client'
+
+useSocketEvent('typing:start', ({ user, channel }) => {
+  if (channel !== currentChannel.value) return
+  startTypingIndicator(user)
+})
+
+// Returns explicit stop() for cases needing early unsubscribe
+const stop = useSocketEvent('presence:update', handler)
+stop()
+```
+
+- Auto-cleans up via `tryOnScopeDispose`; no manual `socket.off` needed.
+- Requires `createClient({ realtime: true })` to have initialised SocketManager.
+- For built-in `list_update` events, prefer `getList({ realtime: true })` —
+  the SDK handles the doctype subscription and refetch logic for you.
+
+---
+
+## response.docs harvesting
+
+Every successful API response is scanned for a `docs` array on the response
+envelope. Each doc in that array is written to DocStore with `meta.full = true`
+— regardless of which endpoint was hit.
+
+This is Frappe's standard pattern: any server-side method can call
+`frappe.response.docs.append(doc.as_dict())` to broadcast a full doc update
+into the client's normalised cache. The side channel covers:
+
+- **Doc methods** — `execute_doc_method` always appends `doc.as_dict()`
+  after `doc.run_method(...)`, so methods get sync for free
+  (`frappe/api/v2.py:258`).
+- **Bulk updates** — `bulk_update_docs` appends each updated doc (v2.py:454).
+- **Custom RPC** — endpoints that want their touched docs synced server-side
+  should call `frappe.response.docs.append(doc.as_dict())` explicitly.
+
+Consumers of `useCall`, `getList`, doctype methods, and bulk ops inherit this
+sync automatically. `getDoc` handles for any appended doc will see the
+update and re-render. See
+[ADR-0001](./adr/0001-doc-freshness-and-completeness.md).
+
+---
+
+## Realtime Integration
+
+`createClient({ realtime: true })` connects to Frappe's Socket.IO server but
+does **not** subscribe any handles automatically. Per-resource opt-in:
+
+```ts
+const todos = ToDo.getList({
+  filters: { status: 'Open' },
+  realtime: true,    // this list subscribes to ToDo's list_update events
+})
+
+const todo = ToDo.getDoc('todo-1', { realtime: true })
+```
+
+Subscription behaviour:
+- **`getList` with `realtime: true`** listens to `list_update` for its
+  doctype. On event, refetches the changed doc individually if its name is
+  already in the list; otherwise refetches the current page.
+- **`getDoc` with `realtime: true`** listens to `list_update` for its
+  doctype and refetches when its own name appears.
+- **Without `realtime: true`**, handles only update via local mutations,
+  `response.docs[]` harvesting, or manual `reload()`.
+
+For custom socket events (typing indicators, presence, app-specific
+broadcasts), use [useSocketEvent](#usesocketevent).
+
+```ts
+// Manual per-doctype listener (bypasses getList/getDoc wrapping)
+const unsub = ToDo.onUpdate((name) => {
+  console.log(`${name} was updated remotely`)
+})
+unsub()
+```
+
+See [ADR-0004](./adr/0004-realtime-opt-in-per-resource.md).
 
 ---
 
 ## Vue Adapter
 
-See [vue.md](./vue.md) for the full Vue adapter specification.
-
----
-
-## Real-time Integration
-
-When `realtime: true`, `createClient` connects to Frappe's Socket.IO server
-using the Frappe socket URL convention (injected via the frappe-ui Vite plugin).
-
-**`list_update`** — sent to the doctype room when any doc is saved. Each
-`getList` handle subscribes to this event via `socket.onDocUpdate()` and either:
-
-- refetches the changed doc individually (if its name is already in the list),
-  or
-- refetches the whole page (if the name is new, indicating a potential
-  insertion).
-
-```ts
-// Manual per-doctype listeners
-const unsub = ToDo.onUpdate((name) => {
-  console.log(`${name} was updated remotely`)
-})
-
-// Unsubscribe
-unsub()
-```
+See [vue.md](./vue.md) for the Vue-specific reactivity wrapping, lifecycle
+integration, and primitives table.
 
 ---
 
 ## Progress Checklist
 
-- [x] `createClient` with baseUrl, realtime, cache, onRequest, onError,
-      onResponse
-- [x] `defineDoctype<T>()()` — curried generic factory (internal, called by
-      generated code)
-- [x] `@/client` module — app's client setup file exporting defineDoctype
-- [x] `getDoc` with enabled, transform, onSuccess/onError, promise
-- [x] `getDoc` setValue via `.call()` and `.callOptimistic()`, delete
-- [x] `getDoc` custom docMethods with `.call()`
+- [x] `createClient` with `baseUrl`, `realtime`, `cache`, `onRequest`, `onResponse`, `onError`
+- [x] `response.docs[]` auto-harvest on every response (ADR-0001)
+- [x] `defineDoctype<T>()()` — curried generic factory (internal)
+- [x] `@/client` module — app's client setup file exporting `defineDoctype`, `useCall`, `useSocketEvent`
+- [x] `getDoc` freshness contract — full entries only (ADR-0001)
+- [x] `getDoc` with `enabled`, `transform`, `onSuccess`, `onError`, `promise`
+- [x] `getDoc` with `url`, `initialData`, `isInitialLoading`, `abort` / `canAbort` / `aborted`
+- [x] `getDoc` per-resource `realtime: true` (ADR-0004)
+- [x] `getDoc` `setValue`, `delete`, custom `docMethods` — each with `validate`
 - [x] `getDoc` reactive name + auto-refetch
-- [x] `getList` with per-key and whole-object reactive filters, debounce,
-      enabled
-- [x] `getList` custom `url` option for non-standard list endpoints
-- [x] `getList` pagination: next, previous, hasNextPage, hasPreviousPage
-- [x] `getList` mutations: setValue, delete, insert (with callOptimistic +
-      position)
-- [x] `getList` `isItemLoading(name, action?)` for per-item loading state
+- [x] `getList` with per-key and whole-object reactive filters, `debounce`, `enabled`
+- [x] `getList` Frappe-exact filter syntax (object, operator tuples, array tuples, `orFilters`)
+- [x] `getList` custom `url` for non-standard list endpoints
+- [x] `getList` explicit `cache: 'key'` for names-array persistence
+- [x] `getList` pagination: `next`, `previous`, `hasNextPage`, `hasPreviousPage`
+- [x] `getList` mutations: `setValue`, `delete`, `insert` (with `validate`, `callOptimistic`, position)
+- [x] `getList` `isItemLoading(name, action?)` per-item loading state
+- [x] `getList` `row(name)` O(1) row lookup
 - [x] `getList` cross-instance sync via DocStore
-- [x] `newDoc` draft → insert flow
-- [x] `getCount` with reactive filters
-- [x] Bulk delete + bulk update
-- [x] Doctype-level `setValue` — patch any doc without `getDoc`
-- [x] Controller methods with `.call()`
+- [x] `getList` per-resource `realtime: true` (ADR-0004)
+- [x] `getList` `initialData`, `isInitialLoading`, `abort` / `canAbort` / `aborted`
+- [x] `newDoc` draft → insert flow (with `validate`)
+- [x] `getCount` with reactive filters, `initialData`, `isInitialLoading`, `abort`
+- [x] Bulk delete + bulk update (with `validate`)
+- [x] Doctype-level `setValue` (with `validate`)
+- [x] Controller methods with `.call()` (with `validate`)
 - [x] File upload with progress via `uploadFile`
+- [x] `useCall` free-form RPC composable (ADR-0002)
+- [x] `useSocketEvent` for custom socket events with scope-bound cleanup
 - [x] Vue adapter (see [vue.md](./vue.md))
-- [x] Real-time: list_update auto-refetch in getList and onUpdate hook
+- [x] Realtime: `list_update` per-resource opt-in (ADR-0004)
+- [x] Lists-are-projections: filter-membership escape hatches documented
