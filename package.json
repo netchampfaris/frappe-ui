@@ -61,6 +61,9 @@
     "./editor-style.css": {
       "import": "./src/components/TextEditor/style.css"
     },
+    "./hljs-theme.css": {
+      "import": "./src/components/TextEditor/hljs-github.css"
+    },
     "./tsconfig.base.json": {
       "types": "./tsconfig.base.json",
       "default": "./tsconfig.base.json"
