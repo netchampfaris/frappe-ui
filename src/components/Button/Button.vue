@@ -21,7 +21,6 @@ import Spinner from '../Spinner/Spinner.vue'
 import TooltipBubble from '../Tooltip/TooltipBubble.vue'
 import { warnFeatherIconUsage } from '../../utils/iconString'
 import { buttonProps } from './types'
-import './Button.css'
 
 export default defineComponent({
   name: 'Button',
