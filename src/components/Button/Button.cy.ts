@@ -20,7 +20,10 @@ describe('<Button />', () => {
       },
     })
     cy.get('button').should('have.text', 'Click me')
-    cy.get('button').should('have.class', 'bg-surface-gray-2')
+    // Colors come from Button.css via data attributes (default: gray subtle).
+    cy.get('button')
+      .should('have.attr', 'data-theme', 'gray')
+      .and('have.attr', 'data-variant', 'subtle')
   })
 
   it('renders themes and variants', () => {
@@ -32,7 +35,10 @@ describe('<Button />', () => {
       },
     })
 
-    cy.get('button').should('have.class', 'bg-blue-500')
+    cy.get('button')
+      .should('have.attr', 'data-theme', 'blue')
+      .and('have.attr', 'data-variant', 'solid')
+    cy.get('button').should('have.css', 'background-color', 'rgb(13, 142, 248)') // blue-500
     cy.get('button').should('contain.text', 'Submit')
   })
 
@@ -44,8 +50,9 @@ describe('<Button />', () => {
       },
     })
 
-    cy.get('button').should('have.class', 'h-10')
-    cy.get('button').should('have.class', 'text-lg-medium')
+    // Sizing comes from Button.css via data-size. h-10 = 40px.
+    cy.get('button').should('have.attr', 'data-size', 'lg')
+    cy.get('button').should('have.css', 'height', '40px')
   })
 
   it('renders xs size', () => {
@@ -56,11 +63,13 @@ describe('<Button />', () => {
       },
     })
 
+    // h-6 = 24px, px-1.5 = 6px.
     cy.get('button')
-      .should('have.class', 'h-6')
-      .and('have.class', 'text-xs')
-      .and('have.class', 'px-1.5')
-      .and('have.class', 'rounded-3')
+      .should('have.attr', 'data-size', 'xs')
+      .and('have.attr', 'data-variant', 'subtle')
+    cy.get('button')
+      .should('have.css', 'height', '24px')
+      .and('have.css', 'padding-left', '6px')
   })
 
   it('handles loading state', () => {
@@ -191,6 +200,7 @@ describe('<Button />', () => {
       },
     })
     cy.get('button').should('be.disabled')
+    cy.get('button').should('have.attr', 'data-disabled')
   })
 
   it('falls back to a disabled button when route or link is blocked', () => {

@@ -1,0 +1,220 @@
+/**
+ * Button styles.
+ *
+ * All styling is driven by `data-*` attributes on the button (`data-theme`,
+ * `data-variant`, `data-size`, `data-icon`, `data-disabled`, `data-loading`)
+ * instead of branching in JS. Each rule `@apply`s the same Tailwind tokens the
+ * component used before, so it stays in sync with the design tokens.
+ *
+ * Specificity: color rules are wrapped in `:where()` (zero specificity) so a
+ * consumer can still override colors with a single utility class. Disabled rules
+ * are intentionally NOT wrapped — they must win over the variant's `:hover` /
+ * `:active` states so a disabled button never shows interactive colors.
+ */
+
+/* base layout */
+.fui-button {
+  @apply inline-flex shrink-0 items-center justify-center gap-2 transition-colors;
+}
+
+/* size — text buttons */
+.fui-button:where(:not([data-icon]))[data-size='xs'] {
+  @apply h-6 px-1.5 text-xs;
+}
+.fui-button:where(:not([data-icon]))[data-size='sm'] {
+  @apply h-7 px-2 text-base;
+}
+.fui-button:where(:not([data-icon]))[data-size='md'] {
+  @apply h-8 px-2.5 text-base-medium;
+}
+.fui-button:where(:not([data-icon]))[data-size='lg'] {
+  @apply h-10 px-3 text-lg-medium;
+}
+
+/* size — icon buttons (square) */
+.fui-button[data-icon][data-size='xs'] {
+  @apply h-6 w-6;
+}
+.fui-button[data-icon][data-size='sm'] {
+  @apply h-7 w-7;
+}
+.fui-button[data-icon][data-size='md'] {
+  @apply h-8 w-8;
+}
+.fui-button[data-icon][data-size='lg'] {
+  @apply h-10 w-10;
+}
+
+/* corner radius — fallback per size, kept separate from size rules so the
+   squircle override below can win with equal specificity + source order */
+.fui-button[data-size='xs'] {
+  @apply rounded-3;
+}
+.fui-button[data-size='sm'],
+.fui-button[data-size='md'] {
+  @apply rounded-4;
+}
+.fui-button[data-size='lg'] {
+  @apply rounded-5;
+}
+
+/* squircle corners use a full 999px radius where the browser supports them */
+@supports (corner-shape: squircle) {
+  .fui-button[data-size] {
+    border-radius: 999px;
+    corner-shape: squircle;
+  }
+}
+
+/* label */
+.fui-button .fui-button-label {
+  @apply truncate;
+}
+.fui-button[data-icon] .fui-button-label {
+  @apply sr-only;
+}
+
+/* icons sized by the button size — height-based (feather/component) and square (lucide/spinner) */
+.fui-button[data-size='xs'] :where(.fui-button-icon) {
+  @apply h-3.5;
+}
+.fui-button[data-size='sm'] :where(.fui-button-icon) {
+  @apply h-4;
+}
+.fui-button[data-size='md'] :where(.fui-button-icon) {
+  @apply h-4.5;
+}
+.fui-button[data-size='lg'] :where(.fui-button-icon) {
+  @apply h-5;
+}
+.fui-button[data-size='xs'] :where(.fui-button-icon-square) {
+  @apply size-3.5;
+}
+.fui-button[data-size='sm'] :where(.fui-button-icon-square) {
+  @apply size-4;
+}
+.fui-button[data-size='md'] :where(.fui-button-icon-square) {
+  @apply size-4.5;
+}
+.fui-button[data-size='lg'] :where(.fui-button-icon-square) {
+  @apply size-5;
+}
+
+/* a loading (but not disabled) button keeps its colors but is non-interactive */
+.fui-button[data-loading]:not([data-disabled]) {
+  pointer-events: none;
+}
+
+/* solid */
+.fui-button:where([data-variant='solid'][data-theme='gray']) {
+  @apply text-ink-base bg-surface-gray-10 hover:bg-surface-gray-9 active:bg-surface-gray-8;
+}
+.fui-button:where([data-variant='solid'][data-theme='blue']) {
+  @apply text-ink-base bg-blue-500 hover:bg-surface-blue-3 active:bg-blue-700;
+}
+.fui-button:where([data-variant='solid'][data-theme='green']) {
+  @apply text-ink-base bg-surface-green-3 hover:bg-green-700 active:bg-green-800;
+}
+.fui-button:where([data-variant='solid'][data-theme='red']) {
+  @apply text-ink-base bg-surface-red-7 hover:bg-surface-red-8 active:bg-surface-red-9;
+}
+
+/* subtle */
+.fui-button:where([data-variant='subtle'][data-theme='gray']) {
+  @apply text-ink-gray-8 bg-surface-gray-2 hover:bg-surface-gray-3 active:bg-surface-gray-4;
+}
+.fui-button:where([data-variant='subtle'][data-theme='blue']) {
+  @apply text-ink-blue-6 bg-surface-blue-2 hover:bg-blue-200 active:bg-blue-300;
+}
+.fui-button:where([data-variant='subtle'][data-theme='green']) {
+  @apply text-green-800 bg-surface-green-2 hover:bg-green-200 active:bg-green-300;
+}
+.fui-button:where([data-variant='subtle'][data-theme='red']) {
+  @apply text-red-700 bg-surface-red-2 hover:bg-surface-red-3 active:bg-surface-red-4;
+}
+
+/* outline */
+.fui-button:where([data-variant='outline'][data-theme='gray']) {
+  @apply text-ink-gray-8 bg-surface-base border border-outline-gray-2 hover:border-outline-gray-3 active:border-outline-gray-3 active:bg-surface-gray-4;
+}
+.fui-button:where([data-variant='outline'][data-theme='blue']) {
+  @apply text-ink-blue-6 bg-surface-base border border-outline-blue-1 hover:border-blue-400 active:border-blue-400 active:bg-blue-300;
+}
+.fui-button:where([data-variant='outline'][data-theme='green']) {
+  @apply text-green-800 bg-surface-base border border-outline-green-3 hover:border-green-500 active:border-green-500 active:bg-green-300;
+}
+.fui-button:where([data-variant='outline'][data-theme='red']) {
+  @apply text-red-700 bg-surface-base border border-outline-red-1 hover:border-outline-red-3 active:border-outline-red-3 active:bg-surface-red-3;
+}
+
+/* ghost */
+.fui-button:where([data-variant='ghost'][data-theme='gray']) {
+  @apply text-ink-gray-8 bg-transparent hover:bg-surface-gray-3 active:bg-surface-gray-4;
+}
+.fui-button:where([data-variant='ghost'][data-theme='blue']) {
+  @apply text-ink-blue-6 bg-transparent hover:bg-blue-200 active:bg-blue-300;
+}
+.fui-button:where([data-variant='ghost'][data-theme='green']) {
+  @apply text-green-800 bg-transparent hover:bg-green-200 active:bg-green-300;
+}
+.fui-button:where([data-variant='ghost'][data-theme='red']) {
+  @apply text-red-700 bg-transparent hover:bg-surface-red-3 active:bg-surface-red-4;
+}
+
+/* focus ring (gray uses the global :focus-visible ring) */
+.fui-button:where([data-theme='blue']) {
+  @apply focus-visible:focus-ring-blue;
+}
+.fui-button:where([data-theme='green']) {
+  @apply focus-visible:focus-ring-green;
+}
+.fui-button:where([data-theme='red']) {
+  @apply focus-visible:focus-ring-red;
+}
+
+/* disabled — overrides the variant + its hover/active states */
+.fui-button[data-disabled][data-theme='gray'][data-variant='solid'],
+.fui-button[data-disabled][data-theme='gray'][data-variant='subtle'] {
+  @apply bg-surface-gray-2 text-ink-gray-4;
+}
+.fui-button[data-disabled][data-theme='gray'][data-variant='outline'] {
+  @apply bg-surface-gray-2 text-ink-gray-4 border border-outline-gray-2;
+}
+.fui-button[data-disabled][data-theme='gray'][data-variant='ghost'] {
+  @apply text-ink-gray-4 bg-transparent;
+}
+
+.fui-button[data-disabled][data-theme='blue'][data-variant='solid'] {
+  @apply bg-blue-300 text-ink-base;
+}
+.fui-button[data-disabled][data-theme='blue'][data-variant='subtle'] {
+  @apply bg-surface-blue-2 text-ink-blue-link;
+}
+.fui-button[data-disabled][data-theme='blue'][data-variant='outline'] {
+  @apply bg-surface-blue-2 text-ink-blue-link border border-outline-blue-1;
+}
+.fui-button[data-disabled][data-theme='blue'][data-variant='ghost'] {
+  @apply text-ink-blue-link bg-transparent;
+}
+
+.fui-button[data-disabled][data-theme='green'][data-variant='solid'],
+.fui-button[data-disabled][data-theme='green'][data-variant='subtle'] {
+  @apply bg-surface-green-2 text-ink-green-5;
+}
+.fui-button[data-disabled][data-theme='green'][data-variant='outline'] {
+  @apply bg-surface-green-2 text-ink-green-5 border border-outline-green-3;
+}
+.fui-button[data-disabled][data-theme='green'][data-variant='ghost'] {
+  @apply text-ink-green-5 bg-transparent;
+}
+
+.fui-button[data-disabled][data-theme='red'][data-variant='solid'],
+.fui-button[data-disabled][data-theme='red'][data-variant='subtle'] {
+  @apply bg-surface-red-2 text-ink-red-5;
+}
+.fui-button[data-disabled][data-theme='red'][data-variant='outline'] {
+  @apply bg-surface-red-2 text-ink-red-5 border border-outline-red-1;
+}
+.fui-button[data-disabled][data-theme='red'][data-variant='ghost'] {
+  @apply text-ink-red-5 bg-transparent;
+}
