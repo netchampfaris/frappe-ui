@@ -21,17 +21,15 @@
         :data-motion="contentMotion"
         :class="[
           menuClasses.content,
-          {
-            'origin-top-left': align === 'start',
-            'origin-top-right': align === 'end',
-            'origin-top': align === 'center',
-          },
+          'origin-[var(--reka-dropdown-menu-content-transform-origin)]',
         ]"
         :side="side"
         :align="align"
         :side-offset="offset"
         :style="{
-          width: matchTriggerWidth ? 'var(--reka-dropdown-menu-trigger-width)' : undefined,
+          width: matchTriggerWidth
+            ? 'var(--reka-dropdown-menu-trigger-width)'
+            : undefined,
         }"
       >
         <Menu
@@ -129,7 +127,8 @@ defineSlots<DropdownSlots>()
  * Menu.vue (rendered by both Dropdown and ContextMenu).
  */
 :global(.menu-content[data-motion='instant'][data-state='open']) {
-  animation: dropdown-instant-fade 80ms linear;
+  animation: dropdown-instant-fade var(--menu-instant-duration, 80ms)
+    var(--menu-instant-ease, linear);
 }
 
 :global(.menu-content[data-motion='instant'][data-state='closed']) {

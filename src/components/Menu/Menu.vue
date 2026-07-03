@@ -93,7 +93,11 @@ async function handleItemSelect(item: MenuOption, event: Event) {
             <component
               :is="primitives.SubContent"
               data-slot="content"
-              :class="menuClasses.content"
+              data-motion="animated"
+              :class="[
+                menuClasses.content,
+                'origin-[var(--reka-dropdown-menu-content-transform-origin)]',
+              ]"
               :side-offset="4"
             >
               <Menu
@@ -205,34 +209,42 @@ async function handleItemSelect(item: MenuOption, event: Event) {
  * menu is used (the package ships source and is tree-shaken per component).
  * Dropdown's keyboard-only `instant` motion stays in Dropdown.vue.
  */
+:global(.menu-content[data-motion='animated']) {
+  backface-visibility: hidden;
+}
+
+:global(.menu-content[data-motion='animated'][data-state='open']) {
+  animation: menu-in var(--menu-enter-duration, 100ms)
+    var(--menu-enter-ease, ease-out);
+}
+
+:global(.menu-content[data-motion='animated'][data-state='closed']) {
+  animation: menu-out var(--menu-exit-duration, 75ms)
+    var(--menu-exit-ease, ease-in);
+}
+
 @keyframes menu-in {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: translateY(var(--menu-enter-y, 0px))
+      scale(var(--menu-enter-scale, 0.95));
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes menu-out {
   from {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
   }
   to {
     opacity: 0;
-    transform: scale(0.95);
+    transform: translateY(var(--menu-exit-y, 0px))
+      scale(var(--menu-exit-scale, 0.95));
   }
-}
-
-:global(.menu-content[data-motion='animated'][data-state='open']) {
-  animation: menu-in 100ms ease-out;
-}
-
-:global(.menu-content[data-motion='animated'][data-state='closed']) {
-  animation: menu-out 75ms ease-in;
 }
 
 @media (prefers-reduced-motion: reduce) {
