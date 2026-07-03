@@ -77,7 +77,7 @@ describe('<TabButtons />', () => {
     cy.get('[data-cy="calendar-icon"]').should('exist')
   })
 
-  it('rounds the focusable tab element to match the pill', () => {
+  it('rounds the focusable tab element to match the tab shape', () => {
     cy.mount(TabButtons, {
       props: {
         options: [

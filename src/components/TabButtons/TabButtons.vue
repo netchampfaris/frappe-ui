@@ -2,10 +2,12 @@
 import { computed, watch, watchEffect, h, type FunctionalComponent } from 'vue'
 import { RadioGroupItem, RadioGroupRoot } from 'reka-ui'
 import { RouterLink } from 'vue-router'
-import { Pill, type BrowserTabBase } from '../Pill'
+import { Icon } from '../Icon'
 import { warnDeprecated } from '../../utils/warnDeprecated'
 import { warnFeatherIconUsage } from '../../utils/iconString'
 import type { TabButton, TabButtonsEmits, TabButtonsProps } from './types'
+
+type BrowserTabBase = 'none' | 'default' | 'left' | 'right'
 
 defineOptions({
   name: 'TabButtons',
@@ -140,10 +142,9 @@ function horizontalClasses() {
   return base
 }
 
-// Vertical mode is a separate layout. Buttons/pills below get `w-full` so
-// every tab stretches to the container's intrinsic max width — the active
-// indicator then lands on the container's rail rather than at the pill's
-// own text width.
+// Vertical mode is a separate layout. Buttons get `w-full` so every tab
+// stretches to the container's intrinsic max width — the active indicator then
+// lands on the container's rail rather than at the button's own text width.
 function verticalClasses() {
   const base = ['inline-flex shrink-0 flex-col']
   const isSm = props.size === 'sm'
@@ -169,16 +170,6 @@ function verticalClasses() {
   return base
 }
 
-const pillVariant = computed(() => {
-  if (props.type === 'underline') return 'underline'
-  if (props.type === 'browser-tab') return 'browser-tab'
-  return 'default'
-})
-
-const pillActiveStyle = computed(() =>
-  props.type === 'ghost' ? 'subtle' : 'raised',
-)
-
 function browserTabBase(checked: boolean): BrowserTabBase {
   if (props.type !== 'browser-tab') return 'none'
   if (!props.vertical) return 'default'
@@ -202,6 +193,111 @@ function tabButtonRadiusClass(checked: boolean) {
   return props.size === 'sm' ? 'rounded-[7px]' : 'rounded-[9px]'
 }
 
+function tabButtonClasses(
+  checked: boolean,
+  button: (typeof resolvedButtons.value)[number],
+) {
+  return [
+    'inline-flex box-border shrink-0 select-none items-center justify-center whitespace-nowrap text-sm leading-[16.1px] no-underline outline-none transition-[background-color,color,box-shadow,border-color] duration-150 ease-out motion-reduce:transition-none disabled:pointer-events-none disabled:opacity-60',
+    contentSizeClass(button),
+    tabButtonRadiusClass(checked),
+    tabButtonVariantClasses(checked),
+    props.vertical && 'w-full justify-start',
+  ]
+}
+
+const buttonSizeClasses = computed(() => {
+  const isSm = props.size === 'sm'
+  return {
+    iconOnly: isSm ? 'size-6.5 gap-1.5 p-[5px]' : 'size-7 gap-1.5 p-[5px]',
+    default:
+      props.type === 'underline'
+        ? isSm
+          ? 'h-7 gap-2'
+          : 'h-7.5 gap-2'
+        : isSm
+          ? 'h-6.5 gap-2 px-2 py-[5px]'
+          : 'h-7 gap-2 px-2.5 py-1.5',
+  }
+})
+
+function tabButtonVariantClasses(checked: boolean) {
+  if (props.type === 'underline') return underlineClasses(checked)
+  if (props.type === 'browser-tab') return browserTabClasses(checked)
+  if (props.type === 'ghost') return ghostClasses(checked)
+  return subtleClasses(checked)
+}
+
+function subtleClasses(checked: boolean) {
+  return checked
+    ? 'bg-surface-base text-ink-gray-8 shadow-[0_0.5px_0_rgb(0_0_0/0.07),0_1px_2px_-1px_rgb(0_0_0/0.08),inset_0_0.5px_0_var(--surface-white)] dark:bg-surface-gray-3 dark:shadow-[inset_0_0.5px_0_rgb(255_255_255/0.25),inset_0_0_0_0.5px_rgb(255_255_255/0.10)]'
+    : 'text-ink-gray-5 hover:bg-surface-gray-3/80 hover:text-ink-gray-7'
+}
+
+function ghostClasses(checked: boolean) {
+  return checked
+    ? 'bg-surface-gray-2 text-ink-gray-8 shadow-[inset_0_0.5px_0_var(--surface-white)] dark:bg-surface-gray-3 dark:shadow-[inset_0_0.5px_0_rgb(255_255_255/0.25),inset_0_0_0_0.5px_rgb(255_255_255/0.10)]'
+    : 'text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-7'
+}
+
+function underlineClasses(checked: boolean) {
+  const isVertical = props.vertical
+  const railSlot = isVertical
+    ? 'border-r border-transparent'
+    : 'border-b border-transparent'
+
+  if (!checked) return [railSlot, 'text-ink-gray-5 hover:text-ink-gray-7']
+
+  const indicator = isVertical
+    ? 'after:absolute after:inset-y-1.5 after:-right-0.5 after:w-px after:bg-[var(--ink-gray-8)]'
+    : 'after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-[var(--ink-gray-8)]'
+
+  return ['relative text-ink-gray-8 font-medium', railSlot, indicator]
+}
+
+function browserTabClasses(checked: boolean) {
+  if (!checked) {
+    return 'border border-transparent text-ink-gray-5 hover:bg-surface-gray-2 hover:text-ink-gray-7'
+  }
+
+  const activeBase =
+    'relative border border-outline-gray-2 bg-surface-base text-ink-gray-8 shadow-[inset_0_1px_0_var(--surface-white)]'
+  const base = browserTabBase(checked)
+
+  if (base === 'left') {
+    return [
+      activeBase,
+      'border-l-0 after:absolute after:-left-[3px] after:-top-px after:-bottom-px after:w-[3px] after:bg-surface-base',
+    ]
+  }
+
+  if (base === 'right') {
+    return [
+      activeBase,
+      'border-r-0 after:absolute after:-right-[3px] after:-top-px after:-bottom-px after:w-[3px] after:bg-surface-base',
+    ]
+  }
+
+  return [
+    activeBase,
+    'border-b-0 after:absolute after:-inset-x-px after:-bottom-[3px] after:h-[3px] after:bg-surface-base',
+  ]
+}
+
+function contentSizeClass(button: (typeof resolvedButtons.value)[number]) {
+  return button.icon
+    ? buttonSizeClasses.value.iconOnly
+    : buttonSizeClasses.value.default
+}
+
+function tabLabelClass(button: (typeof resolvedButtons.value)[number]) {
+  return ['min-w-0 truncate', !button.visibleLabel && 'sr-only']
+}
+
+const iconClass = computed(() =>
+  props.size === 'sm' ? 'size-4 shrink-0' : 'size-[18px] shrink-0',
+)
+
 function hasLabel(label: TabButton['label']) {
   return label !== undefined && label !== null && label !== ''
 }
@@ -215,10 +311,10 @@ function hasLabel(label: TabButton['label']) {
 // resolver. `inheritAttrs: false` keeps the merged Reka/data/class/@click
 // attrs from being applied twice.
 const NativeButton: FunctionalComponent = (_props, { attrs, slots }) =>
-  h('button', attrs, slots.default?.())
+  h('button', { ...attrs }, slots.default?.())
 NativeButton.inheritAttrs = false
 const NativeAnchor: FunctionalComponent = (_props, { attrs, slots }) =>
-  h('a', attrs, slots.default?.())
+  h('a', { ...attrs }, slots.default?.())
 NativeAnchor.inheritAttrs = false
 
 // Pick the wrapper element for a tab. `route` → RouterLink, `href` →
@@ -277,44 +373,43 @@ function tabElementProps(button: (typeof resolvedButtons.value)[number]) {
               ? button.accessibleLabel
               : button.tooltip
           "
-          :class="[
-            'inline-flex appearance-none border-0 bg-transparent p-0 text-inherit no-underline disabled:pointer-events-none disabled:opacity-60',
-            tabButtonRadiusClass(checked),
-            vertical && 'w-full',
-            button.customClass,
-          ]"
+          :class="[tabButtonClasses(checked, button), button.customClass]"
           @click="button.onClick?.($event)"
         >
-          <Pill
-            :class="vertical ? 'w-full !justify-start' : ''"
-            :label="button.label"
-            :icon="button.icon"
-            :icon-left="button.iconLeft"
-            :icon-right="button.iconRight"
-            :active="checked"
-            :size="size"
-            :variant="pillVariant"
-            :browser-tab-base="browserTabBase(checked)"
-            :orientation="vertical ? 'vertical' : 'horizontal'"
-            :active-style="pillActiveStyle"
-          >
-            <template v-if="$slots.prefix" #prefix>
-              <slot
-                name="prefix"
-                :button="button"
-                :checked="checked"
-                :disabled="disabled"
-              />
-            </template>
-            <template v-if="$slots.suffix" #suffix>
-              <slot
-                name="suffix"
-                :button="button"
-                :checked="checked"
-                :disabled="disabled"
-              />
-            </template>
-          </Pill>
+          <slot
+            v-if="$slots.prefix"
+            name="prefix"
+            :button="button"
+            :checked="checked"
+            :disabled="disabled"
+          />
+          <Icon
+            v-else-if="button.icon"
+            :name="button.icon"
+            :class="iconClass"
+          />
+          <Icon
+            v-else-if="button.iconLeft"
+            :name="button.iconLeft"
+            :class="iconClass"
+          />
+
+          <span v-if="hasLabel(button.label)" :class="tabLabelClass(button)">
+            {{ button.label }}
+          </span>
+
+          <slot
+            v-if="$slots.suffix"
+            name="suffix"
+            :button="button"
+            :checked="checked"
+            :disabled="disabled"
+          />
+          <Icon
+            v-else-if="button.iconRight && !button.icon"
+            :name="button.iconRight"
+            :class="iconClass"
+          />
         </component>
       </RadioGroupItem>
     </div>

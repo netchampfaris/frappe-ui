@@ -1,12 +1,12 @@
 import type { Component } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import type { PillSize } from '../Pill'
 
 export type TabButtonValue = string | number | boolean
 export type TabButtonIcon = string | Component
 export type NativeButtonClass = string | string[] | Record<string, boolean>
 export type TabButtonsType = 'subtle' | 'ghost' | 'underline' | 'browser-tab'
 export type TabButtonsDirection = 'left' | 'right'
+export type TabButtonsSize = 'sm' | 'md'
 
 export interface TabButton {
   label?: string | number
@@ -37,7 +37,7 @@ export interface TabButtonsProps {
 
   modelValue?: TabButtonValue
   type?: TabButtonsType
-  size?: PillSize
+  size?: TabButtonsSize
   vertical?: boolean
 
   /** Edge the active browser tab attaches to. Only used when `type='browser-tab'` and `vertical`. */
