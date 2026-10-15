@@ -1,5 +1,23 @@
 # frappe-ui
 
+## 1.1.0
+
+### Minor Changes
+
+- Charts: the legend now takes one row at most; when the series do not fit, it
+  shows the largest ones and a "+N more" button that lists every series, largest
+  first, with a search field past 15 (feat).
+  [#1294](https://github.com/frappe/frappe-ui/pull/1294)
+- Stepper: the new `Stepper` component shows progress through ordered steps,
+  with sub-steps, skipped steps, and a running or failed current step
+  (additive). [#1276](https://github.com/frappe/frappe-ui/pull/1276)
+
+### Patch Changes
+
+- Charts: series named by a `splitBy` value and axis titles now print as given,
+  without capitalizing (fix).
+  [#1293](https://github.com/frappe/frappe-ui/pull/1293)
+
 ## 1.0.2
 
 ### Patch Changes
